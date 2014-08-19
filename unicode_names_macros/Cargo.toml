@@ -1,0 +1,12 @@
+[package]
+
+name = "unicode_names_macros"
+version = "0.0.1"
+authors = ["Huon Wilson <dbau.pp@gmail.com>"]
+
+[dependencies.unicode_names]
+path = ".."
+
+[lib]
+name = "unicode_names_macros"
+plugin = true

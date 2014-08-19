@@ -1,0 +1,4 @@
+/target
+/unicode_names_macros/target
+/Cargo.lock
+/src/UnicodeData.txt

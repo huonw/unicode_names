@@ -1,0 +1,11 @@
+[root]
+name = "unicode_names_macros"
+version = "0.0.1"
+dependencies = [
+ "unicode_names 0.0.1",
+]
+
+[[package]]
+name = "unicode_names"
+version = "0.0.1"
+
