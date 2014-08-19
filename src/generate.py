@@ -6,7 +6,11 @@
 #
 # (This should work with python 2.x too.)
 
-import sys, fileinput, os, stat, urllib, contextlib
+import sys, fileinput, os, stat, contextlib
+try:
+    from urllib.request import urlretrieve # Python 3
+except ImportError:
+    from urllib import urlretrieve # Python 2
 
 MOD_FILE = 'generated.rs'
 
@@ -16,21 +20,43 @@ LINE_LIMIT = 95
 def construct_tables(lines):
     codepoint_to_name = []
     name_to_codepoint = []
+    cjk_ideograph_ranges = []
 
     for line in lines:
         splits = line.split(';')
         codepoint = int(splits[0], 16)
         name = splits[1]
         if name.startswith('<'):
-            continue
-        if len(codepoint_to_name) and codepoint == codepoint_to_name[-1][1] + 1:
-            codepoint_to_name[-1][1] += 1
-            codepoint_to_name[-1][2].append(name)
+            assert name.endswith('>')
+            name = name[1:-1]
+            if name.startswith('CJK Ideograph'):
+                if name.endswith('First'):
+                    assert len(cjk_ideograph_ranges) % 2 == 0
+                    cjk_ideograph_ranges.append(codepoint)
+                elif name.endswith('Last'):
+                    assert len(cjk_ideograph_ranges) % 2 == 1
+                    cjk_ideograph_ranges.append(codepoint)
+                else:
+                    assert False, 'corrupted UnicodeData.txt'
+            elif name.startswith('Hangul Syllable'):
+                # verify that this is the only range we know of
+                assert (name.endswith('First') and codepoint == 0xac00) or \
+                       (name.endswith('Last') and codepoint == 0xd7a3), 'corrupted UnicodeData.txt'
         else:
-            codepoint_to_name.append([codepoint, codepoint, [name]])
+            assert len(cjk_ideograph_ranges) % 2 == 0
+            assert not name.startswith('CJK UNIFIED IDEOGRAPH-')
+            assert not name.startswith('HANGUL SYLLABLE ')
 
-        name_to_codepoint.append((name, codepoint))
-    return codepoint_to_name, name_to_codepoint
+            if len(codepoint_to_name) and codepoint == codepoint_to_name[-1][1] + 1:
+                codepoint_to_name[-1][1] += 1
+                codepoint_to_name[-1][2].append(name)
+            else:
+                codepoint_to_name.append([codepoint, codepoint, [name]])
+            name_to_codepoint.append((name, codepoint))
+
+    # [a, b, c, d, ...] -> [(a, b), (c, d), ...]
+    cjk_ideograph_ranges = zip(cjk_ideograph_ranges[0::2], cjk_ideograph_ranges[1::2])
+    return codepoint_to_name, name_to_codepoint, cjk_ideograph_ranges
 
 def char(c):
     return "'\\U%08x'" % c
@@ -81,6 +107,12 @@ def write_name_to_codepoint(f, name_to_codepoint):
         width += len(this)
     f.write('];\n')
 
+def write_cjk_ideograph_ranges(f, cjk_ideograph_ranges):
+    f.write("pub static CJK_IDEOGRAPH_RANGES: &'static [(char, char)] = &[\n");
+    for first, last in cjk_ideograph_ranges:
+        f.write('    (%s, %s),\n' % (char(first), char(last)))
+    f.write('];\n')
+
 @contextlib.contextmanager
 def modify_read_only(name):
     if os.path.exists(name):
@@ -98,11 +130,13 @@ def modify_read_only(name):
 if __name__ == '__main__':
     if not os.path.exists('UnicodeData.txt'):
         print('UnicodeData.txt not found; downloading...')
-        urllib.request.urlretrieve(UNICODE_DATA_URL, filename='UnicodeData.txt')
+        urlretrieve(UNICODE_DATA_URL, filename='UnicodeData.txt')
 
-    c2n, n2c = construct_tables(open('UnicodeData.txt'))
+    c2n, n2c, ideoranges = construct_tables(open('UnicodeData.txt'))
 
     with modify_read_only(MOD_FILE) as f:
         write_codepoint_to_name(f, c2n)
         f.write('\n')
         write_name_to_codepoint(f, n2c)
+        f.write('\n')
+        write_cjk_ideograph_ranges(f, ideoranges)
