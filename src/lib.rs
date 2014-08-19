@@ -49,6 +49,8 @@
 //!
 //! # Cargo-enabled
 //!
+//! Add either (or both!) of the following to your `Cargo.toml`.
+//!
 //! ```toml
 //! [dependencies.unicode_names]
 //! git = "https://github.com/huonw/unicode_names"
@@ -103,9 +105,10 @@ pub fn name(c: char) -> Option<&'static str> {
     })
 }
 
-/// Find the character called `name`, or `None` if none exists.
+/// Find the character called `name`, or `None` if no such character
+/// exists.
 ///
-/// This searches case-insensitively
+/// This searches case-insensitively.
 ///
 /// # Example
 ///
