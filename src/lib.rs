@@ -68,13 +68,14 @@
 
 use core::cmp::{Equal, Less, Greater};
 use core::collections::Collection;
-use core::option::Option;
+use core::option::{Option, None, Some};
 use core::iter::{order, Iterator, DoubleEndedIterator};
-use core::slice::{ImmutableSlice, MutableSlice};
+use core::slice::{ImmutableSlice, ImmutablePartialEqSlice, MutableSlice};
 use core::str::StrSlice;
+use core::char;
 
-#[allow(dead_code)]
-mod generated;
+#[allow(dead_code)] mod generated;
+#[allow(dead_code)] mod jamo;
 
 /// Find the name of `c`, or `None` if `c` has no name.
 ///
@@ -127,6 +128,55 @@ pub fn character(name: &str) -> Option<char> {
         *place = ASCII_UPPER_MAP[byte as uint]
     }
     let search_name = buf.slice_to(name.len());
+
+    // try `HANGUL SYLLABLE <choseong><jungseong><jongseong>`
+    static HANGUL_SYLLABLE_PREFIX: &'static [u8] = b"HANGUL SYLLABLE ";
+    if search_name.starts_with(HANGUL_SYLLABLE_PREFIX) {
+        let remaining = search_name.slice_from(HANGUL_SYLLABLE_PREFIX.len());
+        let (choseong, remaining) = jamo::slice_shift_choseong(remaining);
+        let (jungseong, remaining) = jamo::slice_shift_jungseong(remaining);
+        let (jongseong, remaining) = jamo::slice_shift_jongseong(remaining);
+        match (choseong, jungseong, jongseong, remaining) {
+            (Some(choseong), Some(jungseong), Some(jongseong), b"") => {
+                let c = 0xac00 + (choseong * 21 + jungseong) * 28 + jongseong;
+                return char::from_u32(c);
+            }
+            (_, _, _, _) => {
+                // there are no other names starting with `HANGUL SYLLABLE `
+                // (verified by `src/generate.py`).
+                return None;
+            }
+        }
+    }
+
+    // try `CJK UNIFIED IDEOGRAPH-<digits>`
+    static CJK_UNIFIED_IDEOGRAPH_PREFIX: &'static [u8] = b"CJK UNIFIED IDEOGRAPH-";
+    if search_name.starts_with(CJK_UNIFIED_IDEOGRAPH_PREFIX) {
+        let remaining = search_name.slice_from(CJK_UNIFIED_IDEOGRAPH_PREFIX.len());
+        if remaining.len() > 5 { return None; } // avoid overflow
+
+        let mut v = 0u32;
+        for &c in remaining.iter() {
+            match c {
+                b'0'..b'9' => v = (v << 4) | (c - b'0') as u32,
+                b'A'..b'F' => v = (v << 4) | (c - b'A' + 10) as u32,
+                _ => return None,
+            }
+        }
+        let ch = match char::from_u32(v) {
+            Some(ch) => ch,
+            None => return None,
+        };
+
+        // check if the resulting code is indeed in the known ranges
+        if generated::CJK_IDEOGRAPH_RANGES.iter().any(|&(lo, hi)| lo <= ch && ch <= hi) {
+            return Some(ch);
+        } else {
+            // there are no other names starting with `CJK UNIFIED IDEOGRAPH-`
+            // (verified by `src/generate.py`).
+            return None;
+        }
+    }
 
     generated::NAME_TO_CHARACTER.binary_search(|&(this_name, _)| {
         // reverse order because this is more unique, and thus more
@@ -241,6 +291,50 @@ mod tests {
         for &n in names.iter() {
             assert_eq!(character(n), None);
         }
+    }
+
+    #[test]
+    #[ignore]
+    fn name_hangul_syllable() {
+        assert_eq!(name('\uac00'), Some("HANGUL SYLLABLE GA")); // first
+        assert_eq!(name('\ubdc1'), Some("HANGUL SYLLABLE BWELG"));
+        assert_eq!(name('\ud7a3'), Some("HANGUL SYLLABLE HIH")); // last
+    }
+
+    #[test]
+    fn character_hangul_syllable() {
+        assert_eq!(character("HANGUL SYLLABLE GA"), Some('\uac00'));
+        assert_eq!(character("HANGUL SYLLABLE BWELG"), Some('\ubdc1'));
+        assert_eq!(character("HANGUL SYLLABLE HIH"), Some('\ud7a3'));
+        assert_eq!(character("HANGUL SYLLABLE BLAH"), None);
+    }
+
+    #[test]
+    #[ignore]
+    fn name_cjk_unified_ideograph() {
+        assert_eq!(name('\u4e00'), Some("CJK UNIFIED IDEOGRAPH-4E00")); // first in BMP
+        assert_eq!(name('\u9fcc'), Some("CJK UNIFIED IDEOGRAPH-9FCC")); // last in BMP (as of 6.1)
+        assert_eq!(name('\U00020000'), Some("CJK UNIFIED IDEOGRAPH-20000")); // first in SIP
+        assert_eq!(name('\U0002a6d7'), Some("CJK UNIFIED IDEOGRAPH-2A6D6"));
+        assert_eq!(name('\U0002a700'), Some("CJK UNIFIED IDEOGRAPH-2A700"));
+        assert_eq!(name('\U0002b81f'), Some("CJK UNIFIED IDEOGRAPH-2B81F")); // last in SIP (as of 6.0)
+    }
+
+    #[test]
+    fn character_cjk_unified_ideograph() {
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-4E00"), Some('\u4e00'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-9FCC"), Some('\u9fcc'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-20000"), Some('\U00020000'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A6D6"), Some('\U0002a6d6'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A700"), Some('\U0002a700'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2B81D"), Some('\U0002b81d'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-"), None);
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-!@#$"), None);
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-1234"), None);
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-EFGH"), None);
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-12345"), None);
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A6D7"), None); // between Ext B and Ext C
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A6FF"), None);
     }
 
 

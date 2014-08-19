@@ -31137,3 +31137,11 @@ pub static NAME_TO_CHARACTER: &'static [(&'static str, char)] = &[
     ("CJK STROKE SWZ", '\U000031d8'), ("CAUCASIAN ALBANIAN LETTER VEYZ", '\U0001055b'),
     ("TIFINAGH LETTER YAZZ", '\U00002d65'), ("CJK STROKE HZZ", '\U000031c5'),
     ("CJK STROKE SZZ", '\U000031de'), ("CJK STROKE HZZZ", '\U000031ce'),];
+
+pub static CJK_IDEOGRAPH_RANGES: &'static [(char, char)] = &[
+    ('\U00003400', '\U00004db5'),
+    ('\U00004e00', '\U00009fcc'),
+    ('\U00020000', '\U0002a6d6'),
+    ('\U0002a700', '\U0002b734'),
+    ('\U0002b740', '\U0002b81d'),
+];
