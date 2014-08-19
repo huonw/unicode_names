@@ -18,6 +18,8 @@
 //! }
 //! ```
 //!
+//! [**Source**](https://github.com/huonw/unicode_names).
+//!
 //! # Macros
 //!
 //! The associated `unicode_names_macros` crate provides two macros
