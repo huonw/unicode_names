@@ -56,7 +56,7 @@
 //! git = "https://github.com/huonw/unicode_names"
 //!
 //! [dependencies.unicode_names_macros]
-//! git = "https://github.com/huonw/unicode_names_macros"
+//! git = "https://github.com/huonw/unicode_names"
 //! ```
 
 
