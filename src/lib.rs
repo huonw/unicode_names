@@ -6,7 +6,7 @@
 //! This crate provides two functions for mapping from a `char` to the
 //! name given by the Unicode standard (7.0). There are no runtime
 //! requirements and this is usable with only `core`, but the
-//! associated tables are large (8MB).
+//! associated tables are large (2.6MB).
 //!
 //! ```rust
 //! extern crate unicode_names;
@@ -101,8 +101,8 @@ pub fn name(c: char) -> Option<&'static str> {
             Equal
         }
     }).found().map(|idx| {
-        let (lo, _, names) = generated::CHARACTER_TO_NAME[idx];
-        names[c as uint - lo as uint]
+        let (lo, _, name_idxs) = generated::CHARACTER_TO_NAME[idx];
+        name_idxs[c as uint - lo as uint].as_str()
     })
 }
 
@@ -178,11 +178,11 @@ pub fn character(name: &str) -> Option<char> {
         }
     }
 
-    generated::NAME_TO_CHARACTER.binary_search(|&(this_name, _)| {
+    generated::NAME_TO_CHARACTER.binary_search(|&(this_idx, _)| {
         // reverse order because this is more unique, and thus more
         // efficient (less time spend iterating over common LATIN
         // CAPITAL LETTER ... etc. prefixes)
-        order::cmp(this_name.bytes().rev(),
+        order::cmp(this_idx.rev_bytes(),
                    search_name.iter().map(|&b| b).rev())
     }).found().map(|idx| {
         let (_, c) = generated::NAME_TO_CHARACTER[idx];
@@ -205,14 +205,10 @@ static ASCII_UPPER_MAP: [u8, ..256] = [
     b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O',
     b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W',
     b'X', b'Y', b'Z', b'[', b'\\', b']', b'^', b'_',
-    b'`',
-
-          b'A', b'B', b'C', b'D', b'E', b'F', b'G',
+    b'`', b'A', b'B', b'C', b'D', b'E', b'F', b'G',
     b'H', b'I', b'J', b'K', b'L', b'M', b'N', b'O',
     b'P', b'Q', b'R', b'S', b'T', b'U', b'V', b'W',
-    b'X', b'Y', b'Z',
-
-                      b'{', b'|', b'}', b'~', 0x7f,
+    b'X', b'Y', b'Z', b'{', b'|', b'}', b'~', 0x7f,
     0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
     0x88, 0x89, 0x8a, 0x8b, 0x8c, 0x8d, 0x8e, 0x8f,
     0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97,
@@ -233,14 +229,13 @@ static ASCII_UPPER_MAP: [u8, ..256] = [
 
 #[cfg(test)]
 mod tests {
-    use core::collections::Collection;
-    use core::slice::ImmutableSlice;
-    use core::option::{None, Some};
-    use core::iter::{Iterator, range};
-    use core::char;
-
     use std::ascii::AsciiExt;
+    use std::char;
+    use std::collections::Collection;
+    use std::iter::{Iterator, range};
+    use std::option::{None, Some};
     use std::rand::{Rng, XorShiftRng, SeedableRng};
+    use std::slice::ImmutableSlice;
     use std::str::Str;
     use std::vec::Vec;
 
@@ -250,7 +245,8 @@ mod tests {
 
     #[test]
     fn exhaustive_positive() {
-        for &(n, c) in generated::NAME_TO_CHARACTER.iter() {
+        for &(idx, c) in generated::NAME_TO_CHARACTER.iter() {
+            let n = idx.as_str();
             assert_eq!(name(c), Some(n));
             assert_eq!(character(n), Some(c));
             assert_eq!(character(n.to_ascii_lower().as_slice()), Some(c))
@@ -358,7 +354,8 @@ mod tests {
 
     #[bench]
     fn character_one_hundreth(b: &mut Bencher) {
-        let mut names: Vec<&str> = generated::NAME_TO_CHARACTER.iter().map(|&(n,_)| n).collect();
+        let mut names: Vec<&str> = generated::NAME_TO_CHARACTER.iter()
+            .map(|&(n,_)| n.as_str()).collect();
         // be consistent across runs, but avoid sequential/caching.
         let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
                                                            0x00FF00FF, 0x0F0F0F0F]);
