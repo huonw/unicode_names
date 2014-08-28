@@ -98,6 +98,7 @@ pub struct Name {
 enum Name_ {
     Plain(iter_str::IterStr),
     CJK(CJK),
+    Hangul(Hangul),
 }
 
 struct CJK {
@@ -105,6 +106,13 @@ struct CJK {
     idx: u8,
     // the longest character is 0x10FFFF
     data: [u8, .. 6]
+}
+struct Hangul {
+    emit_prefix: bool,
+    idx: u8,
+    // stores the choseong, jungseong, jongseong syllable numbers (in
+    // that order)
+    data: [u8, .. 3]
 }
 
 impl Iterator<&'static str> for Name {
@@ -127,6 +135,23 @@ impl Iterator<&'static str> for Name {
                         state.idx += 1;
                         static DIGITS: &'static str = "0123456789ABCDEF";
                         DIGITS.slice(d, d + 1)
+                    })
+            }
+            Hangul(ref mut state) => {
+                if state.emit_prefix {
+                    state.emit_prefix = false;
+                    return Some(HANGUL_SYLLABLE_PREFIX)
+                }
+
+                let idx = state.idx as uint;
+                state.data.get(idx)
+                    .map(|x| *x as uint)
+                    .map(|x| {
+                        // progressively walk through the syllables
+                        state.idx += 1;
+                        [jamo::CHOSEONG,
+                         jamo::JUNGSEONG,
+                         jamo::JONGSEONG][idx][x]
                     })
             }
         }
@@ -189,8 +214,16 @@ pub fn name(c: char) -> Option<Name> {
                 })
             })
         } else {
-            // TODO Hangul
-            None
+            // maybe it is a hangul syllable?
+            jamo::syllable_decomposition(c).map(|(ch, ju, jo)| {
+                Name {
+                    data: Hangul(Hangul {
+                        emit_prefix: true,
+                        idx: 0,
+                        data: [ch, ju, jo]
+                    })
+                }
+            })
         }
     } else {
         Some(Name {
@@ -366,7 +399,7 @@ mod tests {
     use std::vec::Vec;
 
     use test::{mod, Bencher};
-    use super::{generated2, name, character, is_cjk_unified_ideograph};
+    use super::{generated2, name, character, is_cjk_unified_ideograph, jamo};
 
     #[path = "../generated.rs"]
     #[allow(dead_code)]
@@ -396,7 +429,7 @@ mod tests {
         // names (these are unassigned/control codes).
         fn test_range(from: u32, to: u32) {
             for c in range(from, to).filter_map(char::from_u32) {
-                if !is_cjk_unified_ideograph(c) {
+                if !is_cjk_unified_ideograph(c) && !jamo::is_hangul_syllable(c) {
                     assert!(name(c).is_none());
                 }
             }
@@ -424,8 +457,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
-    #[cfg(fixme)]
     fn name_hangul_syllable() {
         assert_eq!(name('\uac00').map(|s| s.to_string()),
                    Some("HANGUL SYLLABLE GA".to_string())); // first

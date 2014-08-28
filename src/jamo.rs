@@ -14,6 +14,26 @@ pub static JONGSEONG: &'static [&'static str] =
       "LM", "LB", "LS", "LT", "LP", "LH", "M", "B", "BS", "S",
       "SS", "NG", "J", "C", "K", "T", "P", "H"];
 
+pub fn is_hangul_syllable(c: char) -> bool {
+    '\uAC00' <= c && c <= '\uD7A3'
+}
+
+pub fn syllable_decomposition(c: char) -> Option<(u8, u8, u8)> {
+    if !is_hangul_syllable(c) {
+        // outside the range
+        return None
+    }
+    let n = c as u32 - 0xAC00;
+    // break this into the various parts.
+    let jongseong = n % 28;
+    let jungseong = (n / 28) % 21;
+    let choseong = n / (28 * 21);
+
+    Some((choseong as u8,
+          jungseong as u8,
+          jongseong as u8))
+}
+
 fn slice_shift_byte<'a>(a: &'a [u8]) -> (Option<u8>, &'a [u8]) {
     match a {
         [c, ..rest] => (Some(c), rest),
