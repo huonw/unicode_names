@@ -76,10 +76,11 @@ use core::result::{Err, Ok};
 use core::slice::{ImmutableSlice, ImmutablePartialEqSlice, MutableSlice};
 use core::str::StrSlice;
 
-use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2,
-                NAME2CODE_N, NAME2CODE_DISP, NAME2CODE_CODE};
+use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2};
+use generated_phf as phf;
 
 #[allow(dead_code)] mod generated;
+#[allow(dead_code)] mod generated_phf;
 #[allow(dead_code)] mod jamo;
 
 mod iter_str;
@@ -233,7 +234,7 @@ pub fn name(c: char) -> Option<Name> {
 }
 
 fn fnv_hash<I: Iterator<u8>>(mut x: I) -> u64 {
-    let mut g = 0xcbf29ce484222325 ^ NAME2CODE_N;
+    let mut g = 0xcbf29ce484222325 ^ phf::NAME2CODE_N;
     for b in x { g ^= b as u64; g *= 0x100000001b3; }
     g
 }
@@ -320,10 +321,10 @@ pub fn character(name: &str) -> Option<char> {
     }
 
     let (g, f1, f2) = split(fnv_hash(search_name.iter().map(|x| *x)));
-    let (d1, d2) = NAME2CODE_DISP[g as uint % NAME2CODE_DISP.len()];
+    let (d1, d2) = phf::NAME2CODE_DISP[g as uint % phf::NAME2CODE_DISP.len()];
 
     let idx = displace(f1, f2, d1 as u32, d2 as u32) as uint;
-    let raw_codepoint = NAME2CODE_CODE[idx % NAME2CODE_CODE.len()];
+    let raw_codepoint = phf::NAME2CODE_CODE[idx % phf::NAME2CODE_CODE.len()];
     debug_assert!(char::from_u32(raw_codepoint).is_some());
     let codepoint = unsafe { mem::transmute::<u32, char>(raw_codepoint) };
 
