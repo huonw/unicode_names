@@ -5,7 +5,7 @@ use core::iter::Iterator;
 use core::option::{Some, None, Option};
 use core::result::{Err, Ok};
 
-use generated2::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_LENGTHS, LEXICON_OFFSETS, LEXICON};
+use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_LENGTHS, LEXICON_OFFSETS, LEXICON};
 
 pub struct IterStr {
     phrasebook: slice::Items<'static u8>,

@@ -76,10 +76,10 @@ use core::result::{Err, Ok};
 use core::slice::{ImmutableSlice, ImmutablePartialEqSlice, MutableSlice};
 use core::str::StrSlice;
 
-use generated2::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2,
-                 NAME2CODE_N, NAME2CODE_DISP, NAME2CODE_CODE};
+use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2,
+                NAME2CODE_N, NAME2CODE_DISP, NAME2CODE_CODE};
 
-#[allow(dead_code)] mod generated2;
+#[allow(dead_code)] mod generated;
 #[allow(dead_code)] mod jamo;
 
 mod iter_str;
@@ -88,7 +88,7 @@ static HANGUL_SYLLABLE_PREFIX: &'static str = "HANGUL SYLLABLE ";
 static CJK_UNIFIED_IDEOGRAPH_PREFIX: &'static str = "CJK UNIFIED IDEOGRAPH-";
 
 fn is_cjk_unified_ideograph(ch: char) -> bool {
-    generated2::CJK_IDEOGRAPH_RANGES.iter().any(|&(lo, hi)| lo <= ch && ch <= hi)
+    generated::CJK_IDEOGRAPH_RANGES.iter().any(|&(lo, hi)| lo <= ch && ch <= hi)
 }
 
 
@@ -390,29 +390,58 @@ mod tests {
     use std::ascii::AsciiExt;
     use std::char;
     use std::collections::Collection;
+    use std::from_str;
     use std::iter::{Iterator, range, range_inclusive};
     use std::option::{None, Some};
     use std::rand::{Rng, XorShiftRng, SeedableRng};
     use std::slice::ImmutableSlice;
-    use std::str::Str;
+    use std::str::{Str, StrSlice};
+    use std::string::String;
     use std::to_string::ToString;
     use std::vec::Vec;
 
     use test::{mod, Bencher};
-    use super::{generated2, name, character, is_cjk_unified_ideograph, jamo};
-
-    #[path = "../generated.rs"]
-    #[allow(dead_code)]
-    mod generated;
+    use super::{generated, name, character, is_cjk_unified_ideograph, jamo};
 
     #[test]
-    fn exhaustive_positive() {
-        for &(idx, c) in generated::NAME_TO_CHARACTER.iter() {
-            let n = idx.as_str();
+    fn exhaustive() {
+        static DATA: &'static str = include_str!("../data/codepoint_name.csv");
+        // check that gaps have no names (these are unassigned/control
+        // codes).
+        fn negative_range(from: u32, to: u32) {
+            for c in range(from, to).filter_map(char::from_u32) {
+                if !is_cjk_unified_ideograph(c) && !jamo::is_hangul_syllable(c) {
+                    let n = name(c);
+                    assert!(n.is_none(),
+                            "{} ({}) shouldn't have a name but is called {}",
+                            c, c as u32, n);
+                }
+            }
+        }
+
+        let mut last = 0;
+        for line in DATA.lines() {
+            let mut it = line.split(';');
+
+            let raw_c = it.next();
+            let c = match char::from_u32(raw_c.and_then(from_str::from_str).unwrap()) {
+                Some(c) => c,
+                None => continue
+            };
+
+            let n = it.next().unwrap();
+            if n.starts_with("<") {
+                continue
+            }
+
             assert_eq!(name(c).unwrap().to_string(), n.to_string());
             assert_eq!(character(n), Some(c));
-            assert_eq!(character(n.to_ascii_lower().as_slice()), Some(c))
+            assert_eq!(character(n.to_ascii_lower().as_slice()), Some(c));
+
+            negative_range(last, c as u32);
+            last = c as u32 + 1;
         }
+        negative_range(last, 0x10FFFF + 1)
     }
 
     #[test]
@@ -423,25 +452,6 @@ mod tests {
         assert_eq!(n.to_string(), "DOMINO TILE VERTICAL-00-00".to_string());
     }
 
-    #[test]
-    fn exhaustive_name_negative() {
-        // check that gaps in the CHARACTER_TO_NAME table have no
-        // names (these are unassigned/control codes).
-        fn test_range(from: u32, to: u32) {
-            for c in range(from, to).filter_map(char::from_u32) {
-                if !is_cjk_unified_ideograph(c) && !jamo::is_hangul_syllable(c) {
-                    assert!(name(c).is_none());
-                }
-            }
-        }
-
-        let mut last = 0;
-        for &(lo, hi, _) in generated::CHARACTER_TO_NAME.iter() {
-            test_range(last, lo as u32);
-            last = hi as u32 + 1;
-        }
-        test_range(last, 0x10FFFF + 1)
-    }
 
     #[test]
     fn character_negative() {
@@ -476,7 +486,7 @@ mod tests {
 
     #[test]
     fn cjk_unified_ideograph_exhaustive() {
-        for &(lo, hi) in generated2::CJK_IDEOGRAPH_RANGES.iter() {
+        for &(lo, hi) in generated::CJK_IDEOGRAPH_RANGES.iter() {
             for x in range_inclusive(lo as u32, hi as u32) {
                 let c = char::from_u32(x).unwrap();
 
@@ -526,7 +536,8 @@ mod tests {
 
     #[bench]
     fn name_one_hundreth(b: &mut Bencher) {
-        let mut chars: Vec<char> = range(0u32, 0x10FFFF + 1).filter_map(char::from_u32).collect();
+        let mut chars: Vec<char> =
+            range_inclusive(0u32, 0x10FFFF).filter_map(char::from_u32).collect();
 
         // be consistent across runs, but avoid sequential/caching.
         let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
@@ -544,18 +555,22 @@ mod tests {
 
     #[bench]
     fn character_one_hundreth(b: &mut Bencher) {
-        let mut names: Vec<&str> = generated::NAME_TO_CHARACTER.iter()
-            .map(|&(n,_)| n.as_str()).collect();
+        let mut chars: Vec<char> =
+            range_inclusive(0u32, 0x10FFFF).filter_map(char::from_u32).collect();
+
         // be consistent across runs, but avoid sequential/caching.
         let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
                                                            0x00FF00FF, 0x0F0F0F0F]);
-        rng.shuffle(names.as_mut_slice());
+        rng.shuffle(chars.as_mut_slice());
 
-        let new_len = names.len() / 100;
-        names.truncate(new_len);
+        let new_len = chars.len() / 100;
+        chars.truncate(new_len);
+
+        let names: Vec<String> = chars.iter().map(|&c| name(c).to_string()).collect();
+
         b.iter(|| {
             for n in names.iter() {
-                test::black_box(character(*n))
+                test::black_box(character(n.as_slice()))
             }
         })
     }

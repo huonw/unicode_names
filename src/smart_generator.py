@@ -13,7 +13,7 @@ try:
 except ImportError:
     from urllib import urlretrieve # Python 2
 
-MOD_FILE = 'generated2.rs'
+MOD_FILE = 'generated.rs'
 
 UNICODE_DATA_URL = 'http://unicode.org/Public/7.0.0/ucd/UnicodeData.txt'
 LINE_LIMIT = 95
@@ -63,7 +63,7 @@ def string(s):
     return '"%s"' %s
 
 def write_array(f, name, type, elements, format=str):
-    f.write("pub static %s: &'static [%s] = &[" % (name, type))
+    f.write("#[inline(never)] pub static %s: &'static [%s] = &[" % (name, type))
     width = LINE_LIMIT
     for e in elements:
         text = format(e) + ','
@@ -78,7 +78,7 @@ def write_array(f, name, type, elements, format=str):
     f.write('];\n')
 
 def write_string(f, name, s):
-    f.write("pub static %s: &'static str = concat!(\n    " % name);
+    f.write("#[inline(never)] pub static %s: &'static str = concat!(\n    " % name);
     step = LINE_LIMIT - 10
     splits = []
     last = 0
