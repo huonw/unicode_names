@@ -6,7 +6,7 @@
 #
 # (This should work with python 2.x too.)
 
-import sys, fileinput, os, stat, contextlib
+import sys, fileinput, os, stat, contextlib, re
 from collections import defaultdict, Counter
 try:
     from urllib.request import urlretrieve # Python 3
@@ -92,6 +92,11 @@ def write_string(f, name, s):
     f.write(',\n    '.join(splits))
     f.write(');\n')
 
+# preserve the -'s but not the spaces.
+splitted = '-'
+SPLITTER = re.compile('([%s])| ' % splitted)
+def split(s):
+    return (x for x in SPLITTER.split(s) if x is not None)
 
 def smallest_index(n):
     for x in [8, 16, 32, 64]:
@@ -252,10 +257,12 @@ def create_lexicon_and_offsets(codepoint_names):
     offsets = {}
     map = []
     for _, name in codepoint_names:
-        for n in name.split():
+        for n in split(name):
             if n not in seen:
                 original_length += len(n)
                 seen.add(n)
+            if len(n) == 1 and n in splitted:
+                continue
             #t.insert(n[::-1])
             # not a substring
             offset = length
@@ -312,38 +319,42 @@ def write_codepoint_maps(f, codepoint_names):
     lexicon_string, lexicon_words = create_lexicon_and_offsets(codepoint_names)
 
     print len(lexicon_words)
-    # we can't use 0
-    # TODO, investigate using a single bit, rather than many bytes
-    escapes = (len(lexicon_words) + 254) / 255
-    short = 255 - escapes
+    escapes = (len(lexicon_words) + 255) / 256
+    # we can't use 255 (end of word), or 254 (hyphen instead of space).
+    #
+    # separating - gives a saving of about 20KB (since more words can
+    # be collapsed, e.g. no need to store the long strings in
+    # HORIZONTAL-00-00 etc. for the dominos)
+    short = 256 - 1 - len(splitted) - escapes
+
     lexicon_words.sort()
 
-    lexicon_offsets = [0]
-    lexicon_lengths = [0]
-    word_encodings = {}
+    lexicon_offsets = []
+    lexicon_lengths = []
+    word_encodings = {x: [254 - i] for i, x in enumerate(splitted)}
     for i, (_, word, offset) in enumerate(lexicon_words[:short]):
         lexicon_offsets.append(offset)
         lexicon_lengths.append(len(word))
-        word_encodings[word] = [i + 1]
+        assert word not in word_encodings
+        word_encodings[word] = [i]
 
-    for i, (_, word, offset) in enumerate(lexicon_words[short:]):
-        lo = 1 + (i % 255)
-        hi = short + 1 + (i / 255)
-        assert short + 1 <= hi < 256
+    for i, (freq, word, offset) in enumerate(lexicon_words[short:]):
+        i += short
+        lo = (i % 256)
+        hi = short + (i / 256)
+        assert short <= hi < 256 - 2
         lexicon_offsets.append(offset)
         lexicon_lengths.append(len(word))
+        assert word not in word_encodings
         word_encodings[word] = [hi, lo]
-    # check we don't have any encoded 0s
-    for w, enc in word_encodings.items():
-        assert 0 not in enc
 
     phrasebook = [0]
     phrasebook_offsets = [0] * (0x10FFFF + 1)
     for cp, name in codepoint_names:
         phrasebook_offsets[cp] = len(phrasebook)
-        for w in name.split():
+        for w in split(name):
             phrasebook.extend(word_encodings[w])
-        phrasebook.append(0)
+        phrasebook.append(255)
 
     t1, t2, shift = bin_data(phrasebook_offsets)
 
@@ -392,7 +403,6 @@ if __name__ == '__main__':
 
     d = construct_tables(open('UnicodeData.txt'))
 
-    import phf
     print len(d['codepoint_names'])
     #print phf.phf_table(hash_, [n for _, n in d['codepoint_names']], lambd=1)
     with modify_read_only(MOD_FILE) as f:

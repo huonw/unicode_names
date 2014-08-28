@@ -21,14 +21,24 @@ impl IterStr {
     }
 }
 
+static END_OF_WORD: u8 = 255;
+static HYPHEN: u8 = 254;
+
 impl Iterator<&'static str> for IterStr {
     fn next(&mut self) -> Option<&'static str> {
         let mut tmp = self.phrasebook;
         match tmp.next() {
             None => None,
-            Some(&0) => {
+            Some(&END_OF_WORD) => {
                 self.phrasebook = (&[]).iter();
                 None
+            }
+            // have to handle this before the case below, because a -
+            // replaces the space entirely.
+            Some(&HYPHEN) => {
+                self.phrasebook = tmp;
+                self.last_was_word = false;
+                Some("-")
             }
             Some(_) if self.last_was_word => {
                 self.last_was_word = false;
@@ -38,11 +48,10 @@ impl Iterator<&'static str> for IterStr {
                 self.phrasebook = tmp;
                 self.last_was_word = true;
 
-                let idx = if b <= PHRASEBOOK_SHORT {
+                let idx = if b < PHRASEBOOK_SHORT {
                     b as uint
                 } else {
-                    PHRASEBOOK_SHORT as uint +
-                        (b - PHRASEBOOK_SHORT - 1) as uint * 255 +
+                    (b - PHRASEBOOK_SHORT) as uint * 256 +
                         (*self.phrasebook.next().unwrap()) as uint
                 };
 
