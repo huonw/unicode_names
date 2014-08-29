@@ -411,19 +411,19 @@ mod tests {
     use std::from_str;
     use std::iter::{Iterator, range, range_inclusive};
     use std::option::{None, Some};
-    use std::rand::{Rng, XorShiftRng, SeedableRng};
+    use std::rand::{XorShiftRng, SeedableRng, mod};
     use std::slice::ImmutableSlice;
     use std::str::{Str, StrSlice};
-    use std::string::String;
     use std::to_string::ToString;
     use std::vec::Vec;
 
     use test::{mod, Bencher};
     use super::{generated, name, character, is_cjk_unified_ideograph, jamo};
 
+    static DATA: &'static str = include_str!("../data/codepoint_name.csv");
+
     #[test]
     fn exhaustive() {
-        static DATA: &'static str = include_str!("../data/codepoint_name.csv");
         // check that gaps have no names (these are unassigned/control
         // codes).
         fn negative_range(from: u32, to: u32) {
@@ -559,38 +559,66 @@ mod tests {
 
 
     #[bench]
-    fn name_one_hundreth(b: &mut Bencher) {
-        let mut chars: Vec<char> =
-            range_inclusive(0u32, 0x10FFFF).filter_map(char::from_u32).collect();
-
-        // be consistent across runs, but avoid sequential/caching.
-        let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
-                                                           0x00FF00FF, 0x0F0F0F0F]);
-        rng.shuffle(chars.as_mut_slice());
-        let new_len = chars.len() / 100;
-        chars.truncate(new_len);
-
+    fn name_basic(b: &mut Bencher) {
         b.iter(|| {
-            for c in chars.iter() {
-                test::black_box(name(*c));
+            for s in name('ö').unwrap() {
+                test::black_box(s);
             }
         })
     }
 
     #[bench]
-    fn character_one_hundreth(b: &mut Bencher) {
-        let mut chars: Vec<char> =
-            range_inclusive(0u32, 0x10FFFF).filter_map(char::from_u32).collect();
+    fn character_basic(b: &mut Bencher) {
+        b.iter(|| character("LATIN SMALL LETTER O WITH DIAERESIS"));
+    }
 
+    #[bench]
+    fn name_10000_invalid(b: &mut Bencher) {
         // be consistent across runs, but avoid sequential/caching.
         let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
                                                            0x00FF00FF, 0x0F0F0F0F]);
-        rng.shuffle(chars.as_mut_slice());
+        let chars = rand::sample(&mut rng,
+                                 range(0u32, 0x10FFFFF)
+                                 .filter_map(|x| {
+                                     char::from_u32(x).filtered(|&c| name(c).is_none())
+                                 }),
+                                 10000);
 
-        let new_len = chars.len() / 100;
-        chars.truncate(new_len);
+        b.iter(|| {
+            for &c in chars.iter() {
+                assert!(name(c).is_none());
+            }
+        })
+    }
 
-        let names: Vec<String> = chars.iter().map(|&c| name(c).to_string()).collect();
+    #[bench]
+    fn name_all_valid(b: &mut Bencher) {
+        let chars = range(0u32, 0x10FFFFF)
+            .filter_map(|x| {
+                char::from_u32(x).filtered(|&c| name(c).is_some())
+            }).collect::<Vec<char>>();
+
+        b.iter(|| {
+            for c in chars.iter() {
+                for s in name(*c).unwrap() {
+                    test::black_box(s);
+                }
+            }
+        });
+    }
+
+    #[bench]
+    fn character_10000(b: &mut Bencher) {
+        // be consistent across runs, but avoid sequential/caching.
+        let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
+                                                           0x00FF00FF, 0x0F0F0F0F]);
+
+        let names = rand::sample(&mut rng,
+                                 range(0u32, 0x10FFFFF)
+                                 .filter_map(|x| {
+                                     char::from_u32(x).and_then(name).map(|n| n.to_string())
+                                 }),
+                                 10000);
 
         b.iter(|| {
             for n in names.iter() {
