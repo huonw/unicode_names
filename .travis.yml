@@ -6,5 +6,6 @@ install:
 script:
   - cargo build --verbose && cargo test --verbose && cargo doc --verbose && mv target/doc doc
   - ( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )
+  - ( cd generator && rustc generator.rs -O && ./generator -s )
 after_script:
   - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
