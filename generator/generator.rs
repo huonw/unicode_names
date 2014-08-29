@@ -210,13 +210,12 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
 }
 
 fn main() {
-    let (codepoint_names, cjk) = get_table_data();
-
     let opts = [
         getopts::optflag("p", "phf", "compute the name -> codepoint PHF"),
         getopts::optopt("l", "phf-lambda", "the lambda to use for PHF", "N"),
         getopts::optopt("t", "phf-tries", "the number of attempts when computing PHF", "N"),
         getopts::optflag("s", "silent", "don't write anything to files"),
+        getopts::optopt("", "truncate", "only handle the first N", "N"),
         getopts::optflag("h", "help", "print this message"),
         ];
     let matches = match getopts::getopts(std::os::args().tail(), opts) {
@@ -240,6 +239,12 @@ fn main() {
 
     let lambda = matches.opt_str("phf-lambda");
     let tries = matches.opt_str("phf-tries");
+
+    let (mut codepoint_names, cjk) = get_table_data();
+    match matches.opt_str("truncate").map(|s| from_str(s.as_slice()).unwrap()) {
+        Some(n) => codepoint_names.truncate(n),
+        None => {}
+    }
 
     if do_phf {
         let (n, disps, data) =
