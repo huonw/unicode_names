@@ -92,7 +92,11 @@ fn is_cjk_unified_ideograph(ch: char) -> bool {
     generated::CJK_IDEOGRAPH_RANGES.iter().any(|&(lo, hi)| lo <= ch && ch <= hi)
 }
 
-
+/// An iterator over the components of a code point's name, it also
+/// implements `Show`.
+///
+/// The size hint is exact, but iterates (although iteration is cheap
+/// and all names are short).
 pub struct Name {
     data: Name_
 }
@@ -157,6 +161,13 @@ impl Iterator<&'static str> for Name {
             }
         }
     }
+
+    fn size_hint(&self) -> (uint, Option<uint>) {
+        // we can estimate exactly by just iterating and summing up.
+        let mut counted = *self;
+        let n = counted.fold(0, |a, s| a + s.len());
+        (n, Some(n))
+    }
 }
 
 impl Show for Name {
@@ -170,6 +181,11 @@ impl Show for Name {
 }
 
 /// Find the name of `c`, or `None` if `c` has no name.
+///
+/// The return value is an iterator that yields `&str` components of
+/// the name successively (including spaces and hyphens). It
+/// implements `Show`, and thus can be used naturally to build
+/// `String`s, or be printed, etc.
 ///
 /// # Example
 ///
@@ -435,7 +451,13 @@ mod tests {
                 continue
             }
 
-            assert_eq!(name(c).unwrap().to_string(), n.to_string());
+            let computed_n = name(c).unwrap();
+            let (a, b) = computed_n.size_hint();
+            let n_str = computed_n.to_string();
+            assert_eq!(n_str, n.to_string());
+            assert_eq!(a, n_str.len());
+            assert_eq!(b, Some(n_str.len()));
+
             assert_eq!(character(n), Some(c));
             assert_eq!(character(n.to_ascii_lower().as_slice()), Some(c));
 
