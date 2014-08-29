@@ -90,21 +90,37 @@ fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (Strin
     let mut t = trie::Trie::new();
     let mut output = String::new();
 
+    let mut substring_overlaps = 0u;
+    let mut substring_o_bytes = 0u;
+
     for &(_, ref name) in codepoint_names.iter() {
         for n in util::split(name.as_slice(), SPLITTERS) {
             if n.len() == 1 && SPLITTERS.contains(&n.as_bytes()[0]) {
                 continue
             }
 
-            if t.insert(n.bytes(), None, false).is_none() {
+            let (already, previous_was_exact) = t.insert(n.bytes(), None, false);
+            if already {
+                if !previous_was_exact {
+                    substring_overlaps += 1;
+                    substring_o_bytes += n.len();
+                }
+            } else {
                 // completely new element, i.e. not a substring of
                 // anything, so record its position & add it.
                 let offset = output.len();
                 t.set_offset(n.bytes(), offset);
                 output.push_str(n);
 
+                // insert the suffixes of this word which saves about
+                // 10KB (we could theoretically insert all substrings,
+                // upto a certain length, but this only saves ~300
+                // bytes or so and is noticably slower).
                 for i in range(1, n.len()) {
-                    if !t.insert(n.slice_from(i).bytes(), Some(offset + i), true).is_none() {
+                    if t.insert(n.slice_from(i).bytes(), Some(offset + i), true).val0() {
+                        // once we've found a string that's already
+                        // been inserted, we know all suffixes will've
+                        // been inserted too.
                         break
                     }
                 }
@@ -112,7 +128,8 @@ fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (Strin
         }
     }
     let words: Vec<_> = t.iter().map(|(a, b, c)| (a, b, c.expect("unset offset?"))).collect();
-    println!("Lexicon: # words {}, byte size {}", words.len(), output.len());
+    println!("Lexicon: # words {}, byte size {}, with {} ({} bytes) non-exact matches",
+             words.len(), output.len(), substring_overlaps, substring_o_bytes);
     (output, words)
 }
 

@@ -28,13 +28,17 @@ impl Trie {
             Some(b) => self.get_child(b).set_offset(it, offset),
         }
     }
+    /// insert the value given by the sequence `it`, returning a tuple
+    /// (is this a substring already in the tree, was this exact
+    /// sequence previously inserted).
     pub fn insert<I: Iterator<u8>>(&mut self, mut it: I, offset: Option<uint>,
-                                   weak: bool) -> Option<uint> {
+                                   weak: bool) -> (bool, bool) {
         let ret = match it.next() {
             None => {
+                let old_count = self.count;
                 if !weak { self.count += 1 }
 
-                self.offset
+                (self.offset.is_some(), old_count > 0)
             }
             Some(b) => self.get_child(b).insert(it, offset, weak)
         };
