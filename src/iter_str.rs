@@ -2,7 +2,7 @@ use core::{slice, fmt};
 use core::slice::ImmutableSlice;
 use core::str::StrSlice;
 use core::iter::Iterator;
-use core::option::{Some, None, Option};
+use core::option::Option;
 use core::result::{Err, Ok};
 
 use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_LENGTHS, LEXICON_OFFSETS, LEXICON};
@@ -21,45 +21,49 @@ impl IterStr {
     }
 }
 
-static END_OF_WORD: u8 = 255;
-static HYPHEN: u8 = 254;
+static HYPHEN: u8 = 127;
 
 impl Iterator<&'static str> for IterStr {
     fn next(&mut self) -> Option<&'static str> {
         let mut tmp = self.phrasebook;
-        match tmp.next() {
-            None => None,
-            Some(&END_OF_WORD) => {
-                self.phrasebook = (&[]).iter();
-                None
-            }
-            // have to handle this before the case below, because a -
-            // replaces the space entirely.
-            Some(&HYPHEN) => {
-                self.phrasebook = tmp;
+        tmp.next().map(|&raw_b| {
+            // the first byte includes if it is the last in this name
+            // in the high bit.
+            let (is_end, b) = (raw_b & 0b1000_0000 != 0,
+                               raw_b & 0b0111_1111);
+
+            let ret = if b == HYPHEN {
+                // have to handle this before the case below, because a -
+                // replaces the space entirely.
                 self.last_was_word = false;
-                Some("-")
-            }
-            Some(_) if self.last_was_word => {
+                "-"
+            } else if self.last_was_word {
                 self.last_was_word = false;
-                Some(" ")
-            }
-            Some(&b) => {
-                self.phrasebook = tmp;
+                // early return, we don't want to update the
+                // phrasebook (i.e. we're pretending we didn't touch
+                // this byte).
+                return " "
+            } else {
                 self.last_was_word = true;
 
                 let idx = if b < PHRASEBOOK_SHORT {
                     b as uint
                 } else {
                     (b - PHRASEBOOK_SHORT) as uint * 256 +
-                        (*self.phrasebook.next().unwrap()) as uint
+                        (*tmp.next().unwrap()) as uint
                 };
 
                 let offset = LEXICON_OFFSETS[idx] as uint;
                 let length = LEXICON_LENGTHS[idx] as uint;
-                Some(LEXICON.slice(offset, offset + length))
-            }
-        }
+                LEXICON.slice(offset, offset + length)
+            };
+            self.phrasebook = if is_end {
+                (&[]).iter()
+            } else {
+                tmp
+            };
+            ret
+        })
     }
 }
 

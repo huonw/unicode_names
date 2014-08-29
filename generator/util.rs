@@ -54,3 +54,18 @@ impl<'a, 'b> Iterator<&'a str> for Split<'a, 'b> {
         return Some(self.s)
     }
 }
+
+#[test]
+fn test_split() {
+    let tests: &[(&str, &[&str])] =
+        &[("a", &["a"]),
+          ("a b", &["a", "b"]),
+          (" a b ", &["", "a", "b", ""]),
+          ("a-b", &["a", "-", "b"]),
+          ("a- b", &["a", "-", "", "b"]),
+          ("a -b", &["a", "", "-", "b"])];
+
+    for &(s, v) in tests.iter() {
+        assert_eq!(split(s, b"-").collect::<Vec<&str>>().as_slice(), v)
+    }
+}

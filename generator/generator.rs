@@ -1,5 +1,6 @@
-#![feature(macro_rules)]
+#![feature(macro_rules, phase)]
 
+#[phase(plugin, link)] extern crate log;
 extern crate getopts;
 
 use std::io::{File, BufferedReader, BufferedWriter, mod};
@@ -152,11 +153,11 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
 
     let num_escapes = (lexicon_words.len() + 255) / 256;
 
-    // we reserve 255 (end of word) and 254... for non-space splits.
-    // Doing these extra splits reduces the space required even more
-    // (e.g. - is a reduction of 20KB)
-
-    let short = 256 - 1 - SPLITTERS.len() - num_escapes;
+    // we reserve the high bit (end of word) and 127,126... for
+    // non-space splits.  The high bit saves about 10KB, and doing the
+    // extra splits reduces the space required even more (e.g. - is a
+    // reduction of 14KB).
+    let short = 128 - SPLITTERS.len() - num_escapes;
 
     lexicon_words.sort_by(|a, b| a.cmp(b).reverse());
 
@@ -164,7 +165,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     let mut lexicon_lengths = vec![];
     let mut word_encodings = HashMap::new();
     for (i, x) in SPLITTERS.iter().enumerate() {
-        word_encodings.insert(vec![*x], vec![254 - i as u32]);
+        word_encodings.insert(vec![*x], vec![128 - 1 - i as u32]);
     }
 
     let mut iter = lexicon_words.move_iter().enumerate();
@@ -175,7 +176,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     }
     for (i, (_, word, offset)) in iter {
         let (hi, lo) = (short + i / 256, i % 256);
-        assert!(short <= hi && hi < 256 - 1 - SPLITTERS.len());
+        assert!(short <= hi && hi < 128 - SPLITTERS.len());
         lexicon_offsets.push(offset);
         lexicon_lengths.push(word.len());
         assert!(word_encodings.insert(word, vec![hi as u32, lo as u32]));
@@ -187,10 +188,18 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
         let start = phrasebook.len() as u32;
         *phrasebook_offsets.get_mut(cp as uint) = start;
 
+        let mut last_len = 0;
         for w in util::split(name.as_slice(), SPLITTERS) {
-            phrasebook.push_all(word_encodings.find_equiv(&w.as_bytes()).unwrap().as_slice())
+            let data = word_encodings.find_equiv(&w.as_bytes()).unwrap();
+            last_len = data.len();
+            // info!("{}: '{}' {}", name, w, data);
+            phrasebook.push_all(data.as_slice())
         }
-        phrasebook.push(255);
+
+        // add the high bit to the first byte of the last encoded
+        // phrase, to indicate the end.
+        let idx = phrasebook.len() - last_len;
+        *phrasebook.get_mut(idx) |= 0b1000_0000;
     }
 
     let (t1, t2, shift) = bin_data(phrasebook_offsets.as_slice());
@@ -205,8 +214,6 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
                      t1.as_slice());
     ctxt.write_shows("PHRASEBOOK_OFFSETS2", util::smallest_u(t2.iter().map(|x| *x)).as_slice(),
                      t2.as_slice());
-
-    // TODO hash table
 }
 
 fn main() {
