@@ -2,10 +2,11 @@ use core::{slice, fmt};
 use core::slice::ImmutableSlice;
 use core::str::StrSlice;
 use core::iter::Iterator;
-use core::option::Option;
+use core::option::{Option, Some, None};
 use core::result::{Err, Ok};
 
-use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_LENGTHS, LEXICON_OFFSETS, LEXICON};
+use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_SHORT_LENGTHS, LEXICON_ORDERED_LENGTHS,
+                LEXICON_OFFSETS, LEXICON};
 
 pub struct IterStr {
     phrasebook: slice::Items<'static u8>,
@@ -46,15 +47,20 @@ impl Iterator<&'static str> for IterStr {
             } else {
                 self.last_was_word = true;
 
-                let idx = if b < PHRASEBOOK_SHORT {
-                    b as uint
+                let idx;
+                let length = if b < PHRASEBOOK_SHORT {
+                    idx = b as uint;
+                    LEXICON_SHORT_LENGTHS[idx] as uint
                 } else {
-                    (b - PHRASEBOOK_SHORT) as uint * 256 +
-                        (*tmp.next().unwrap()) as uint
-                };
+                    idx = (b - PHRASEBOOK_SHORT) as uint * 256 +
+                        (*tmp.next().unwrap()) as uint;
 
+                    match LEXICON_ORDERED_LENGTHS.iter().find(|&&(end, _)| idx < end) {
+                        Some(&(_, len)) => len as uint,
+                        None => unreachable!()
+                    }
+                };
                 let offset = LEXICON_OFFSETS[idx] as uint;
-                let length = LEXICON_LENGTHS[idx] as uint;
                 LEXICON.slice(offset, offset + length)
             };
             self.phrasebook = if is_end {

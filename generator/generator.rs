@@ -161,26 +161,41 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
 
     lexicon_words.sort_by(|a, b| a.cmp(b).reverse());
 
-    let mut lexicon_offsets = vec![];
-    let mut lexicon_lengths = vec![];
+    lexicon_words.mut_slice_from(short)
+        .sort_by(|&(_, ref a, _), &(_, ref b, _)| a.len().cmp(&b.len()));
+
     let mut word_encodings = HashMap::new();
     for (i, x) in SPLITTERS.iter().enumerate() {
         word_encodings.insert(vec![*x], vec![128 - 1 - i as u32]);
     }
 
+    let mut lexicon_offsets = vec![];
+    let mut lexicon_short_lengths = vec![];
     let mut iter = lexicon_words.move_iter().enumerate();
     for (i, (_, word, offset)) in iter.by_ref().take(short) {
         lexicon_offsets.push(offset);
-        lexicon_lengths.push(word.len());
+        lexicon_short_lengths.push(word.len());
         assert!(word_encodings.insert(word, vec![i as u32]))
     }
+
+    let mut lexicon_ordered_lengths = vec![];
+    let mut previous = 0xFFFF;
     for (i, (_, word, offset)) in iter {
         let (hi, lo) = (short + i / 256, i % 256);
         assert!(short <= hi && hi < 128 - SPLITTERS.len());
         lexicon_offsets.push(offset);
-        lexicon_lengths.push(word.len());
+        let len = word.len();
+        if len != previous {
+            if previous != 0xFFFF {
+                lexicon_ordered_lengths.push((i, previous));
+            }
+            previous = len;
+        }
+
         assert!(word_encodings.insert(word, vec![hi as u32, lo as u32]));
     }
+    // last one
+    lexicon_ordered_lengths.push((lexicon_offsets.len(), previous));
 
     let mut phrasebook = vec![0u32];
     let mut phrasebook_offsets = Vec::from_elem(0x10FFFF + 1, 0);
@@ -206,7 +221,8 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
 
     ctxt.write_plain_string("LEXICON", lexicon_string.as_slice());
     ctxt.write_shows("LEXICON_OFFSETS", "u16", lexicon_offsets.as_slice());
-    ctxt.write_shows("LEXICON_LENGTHS", "u8", lexicon_lengths.as_slice());
+    ctxt.write_shows("LEXICON_SHORT_LENGTHS", "u8", lexicon_short_lengths.as_slice());
+    ctxt.write_shows("LEXICON_ORDERED_LENGTHS", "(uint, u8)", lexicon_ordered_lengths.as_slice());
     w!(ctxt, "pub static PHRASEBOOK_SHORT: u8 = {};\n", short);
     ctxt.write_shows("PHRASEBOOK", "u8", phrasebook.as_slice());
     w!(ctxt, "pub static PHRASEBOOK_OFFSET_SHIFT: uint = {};\n", shift);
