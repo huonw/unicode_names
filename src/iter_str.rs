@@ -50,11 +50,14 @@ impl Iterator<&'static str> for IterStr {
                 let idx;
                 let length = if b < PHRASEBOOK_SHORT {
                     idx = b as uint;
+                    // these lengths are hard-coded
                     LEXICON_SHORT_LENGTHS[idx] as uint
                 } else {
                     idx = (b - PHRASEBOOK_SHORT) as uint * 256 +
                         (*tmp.next().unwrap()) as uint;
 
+                    // search for the right place: the first one where
+                    // the end-point is after our current index.
                     match LEXICON_ORDERED_LENGTHS.iter().find(|&&(end, _)| idx < end) {
                         Some(&(_, len)) => len as uint,
                         None => unreachable!()
