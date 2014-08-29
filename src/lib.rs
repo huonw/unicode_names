@@ -1,5 +1,6 @@
 #![no_std]
 #![feature(phase)]
+#![deny(missing_doc, warnings)]
 
 //! Convert between characters and their standard names.
 //!
