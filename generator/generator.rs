@@ -3,8 +3,9 @@
 #[phase(plugin, link)] extern crate log;
 extern crate getopts;
 
-use std::io::{File, BufferedReader, BufferedWriter, mod};
+use std::cmp;
 use std::collections::HashMap;
+use std::io::{File, BufferedReader, BufferedWriter, mod};
 
 use formatting::Context;
 
@@ -233,7 +234,10 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // currently huge, but it has a lot of 0's, so we compress it
     // using the binning, below.
     let mut phrasebook_offsets = Vec::from_elem(0x10FFFF + 1, 0);
+    let mut longest_name = 0;
     for &(cp, ref name) in codepoint_names.iter() {
+        longest_name = cmp::max(name.len(), longest_name);
+
         let start = phrasebook.len() as u32;
         *phrasebook_offsets.get_mut(cp as uint) = start;
 
@@ -256,6 +260,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // compress the offsets, hopefully collapsing all the 0's.
     let (t1, t2, shift) = bin_data(phrasebook_offsets.as_slice());
 
+    w!(ctxt, "pub static MAX_NAME_LENGTH: uint = {};\n", longest_name);
     ctxt.write_plain_string("LEXICON", lexicon_string.as_slice());
     ctxt.write_shows("LEXICON_OFFSETS", "u16", lexicon_offsets.as_slice());
     ctxt.write_shows("LEXICON_SHORT_LENGTHS", "u8", lexicon_short_lengths.as_slice());

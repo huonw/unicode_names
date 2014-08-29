@@ -76,7 +76,7 @@ use core::result::{Err, Ok};
 use core::slice::{ImmutableSlice, ImmutablePartialEqSlice, MutableSlice};
 use core::str::StrSlice;
 
-use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2};
+use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2, MAX_NAME_LENGTH};
 use generated_phf as phf;
 
 #[allow(dead_code)] mod generated;
@@ -282,8 +282,9 @@ fn split(hash: u64) -> (u32, u32, u32) {
 /// assert_eq!(unicode_names::character("nonsense"), None);
 /// ```
 pub fn character(name: &str) -> Option<char> {
-    // todo proper number
-    let mut buf = [0u8, .. 100];
+    // + 1 so that we properly handle the case when `name` has a
+    // prefix of the longest name, but isn't exactly equal.
+    let mut buf = [0u8, .. MAX_NAME_LENGTH + 1];
     for (place, byte) in buf.mut_iter().zip(name.bytes()) {
         *place = ASCII_UPPER_MAP[byte as uint]
     }
