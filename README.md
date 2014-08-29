@@ -2,8 +2,8 @@
 
 [![Build Status](https://travis-ci.org/huonw/unicode_names.png)](https://travis-ci.org/huonw/unicode_names)
 
-Mapping characters to and from their Unicode names, at runtime and
-compile-time.
+Time and memory efficiently mapping characters to and from their
+Unicode 7.0 names, at runtime and compile-time.
 
 ```rust
 extern crate unicode_names;
@@ -14,5 +14,8 @@ fn main() {
     // (NB. case insensitivity)
 }
 ```
+
+The maps are compressed using similar tricks to Python's `unicodedata`
+module, although those here are about 70KB (12%) smaller.
 
 [**Documentation**](http://www.rust-ci.org/huonw/unicode_names/doc/unicode_names/)
