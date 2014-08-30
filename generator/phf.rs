@@ -69,15 +69,14 @@ fn try_phf_table(values: &[(u32, String)],
     let mut d1s = Vec::from_fn(table_len, |i| i as u32);
     let mut d2s = d1s.clone();
     let mut rng: XorShiftRng = rand::random();
+    rng.shuffle(d1s.as_mut_slice());
+    rng.shuffle(d2s.as_mut_slice());
 
     // run through each bucket and try to fit the elements into the
     // array by choosing appropriate adjusting factors
     // ("displacements") that allow the other two parts of the hash to
     // be combined into an empty index.
     'next_bucket: for &(bkt_idx, ref bkt_keys) in buckets.iter() {
-        rng.shuffle(d1s.as_mut_slice());
-        rng.shuffle(d2s.as_mut_slice());
-
         // exhaustively search for a pair of displacements that work.
         for &d1 in d1s.iter() {
             'next_disp: for &d2 in d2s.iter() {
