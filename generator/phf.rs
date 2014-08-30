@@ -6,7 +6,6 @@
 extern crate time;
 
 use std::rand::{XorShiftRng, Rng, mod};
-use std::collections::HashMap;
 
 static NOVAL: u32 = 0xFFFF_FFFF;
 
@@ -61,7 +60,17 @@ fn try_phf_table(values: &[(u32, String)],
     // the set of index -> value mappings for the next bucket to be
     // placed; we need it separate because it may not work, so we may
     // have to roll back.
-    let mut try_map = HashMap::new();
+    //
+    // it works by storing a map from index -> generation, so we can
+    // check if the index is taken by a previously-placed element of
+    // the current bucket cheaply (just an array lookup) without
+    // having to clear the whole the whole array each time (just
+    // compare against the generation). A u64 won't overflow.
+    let mut generation = 0;
+    let mut try_map = Vec::from_elem(table_len, 0u64);
+    // the placed (index, codepoint) pairs of the current bucket, to
+    // be placed into the main map if the whole bucket fits.
+    let mut values_to_add = vec![];
 
     // heuristically avoiding doing everything in the same order seems
     // good? I dunno; but anyway, we get vectors of indices and
@@ -80,7 +89,8 @@ fn try_phf_table(values: &[(u32, String)],
         // exhaustively search for a pair of displacements that work.
         for &d1 in d1s.iter() {
             'next_disp: for &d2 in d2s.iter() {
-                try_map.clear();
+                generation += 1;
+                values_to_add.clear();
 
                 // run through the elements to see if they all fit
                 for &(h, cp) in bkt_keys.iter() {
@@ -89,19 +99,20 @@ fn try_phf_table(values: &[(u32, String)],
                     // to avoid collisions.
                     let idx = (displace(h.f1, h.f2, d1, d2) % table_len as u32) as uint;
 
-                    if map[idx] != NOVAL || try_map.contains_key(&idx) {
+                    if map[idx] != NOVAL || try_map[idx] == generation {
                         // nope, this one is taken, so this pair of
                         // displacements doesn't work.
                         continue 'next_disp
                     }
-                    try_map.insert(idx, cp);
+                    *try_map.get_mut(idx) = generation;
+                    values_to_add.push((idx, cp));
                 }
 
                 // everything works! let's lock it in and go to the
                 // next bucket.
                 *disps.get_mut(bkt_idx) = (d1, d2);
-                for (idx, cp) in try_map.iter() {
-                    *map.get_mut(*idx) = *cp
+                for &(idx, cp) in values_to_add.iter() {
+                    *map.get_mut(idx) = cp
                 }
                 continue 'next_bucket
             }
