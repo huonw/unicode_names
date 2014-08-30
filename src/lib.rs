@@ -338,14 +338,24 @@ pub fn character(name: &str) -> Option<char> {
         }
     }
 
+    // get the parts of the hash...
     let (g, f1, f2) = split(fnv_hash(search_name.iter().map(|x| *x)));
+    // ...and the appropriate displacements...
     let (d1, d2) = phf::NAME2CODE_DISP[g as uint % phf::NAME2CODE_DISP.len()];
 
+    // ...to find the right index...
     let idx = displace(f1, f2, d1 as u32, d2 as u32) as uint;
+    // ...for looking up the codepoint.
     let raw_codepoint = phf::NAME2CODE_CODE[idx % phf::NAME2CODE_CODE.len()];
+
     debug_assert!(char::from_u32(raw_codepoint).is_some());
     let codepoint = unsafe { mem::transmute::<u32, char>(raw_codepoint) };
 
+    // Now check that this is actually correct. Since this is a
+    // perfect hash table, valid names map precisely to their code
+    // point (and invalid names map to anything), so we only need to
+    // check the name for this codepoint matches the input and we know
+    // everything. (i.e. no need for probing)
     let mut maybe_name = match ::name(codepoint) {
         None => {
             if true { debug_assert!(false) }
@@ -354,6 +364,8 @@ pub fn character(name: &str) -> Option<char> {
         Some(name) => name
     };
 
+    // run through the parts of the name, matching them against the
+    // parts of the input.
     let mut passed_name = search_name;
     for part in maybe_name {
         let part = part.as_bytes();
