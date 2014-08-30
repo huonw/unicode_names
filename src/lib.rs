@@ -95,8 +95,8 @@ fn is_cjk_unified_ideograph(ch: char) -> bool {
 /// An iterator over the components of a code point's name, it also
 /// implements `Show`.
 ///
-/// The size hint is exact, but iterates (although iteration is cheap
-/// and all names are short).
+/// The size hint is exact for the number of pieces, but iterates
+/// (although iteration is cheap and all names are short).
 pub struct Name {
     data: Name_
 }
@@ -118,6 +118,17 @@ struct Hangul {
     // stores the choseong, jungseong, jongseong syllable numbers (in
     // that order)
     data: [u8, .. 3]
+}
+
+impl Name {
+    /// The number of bytes in the name.
+    ///
+    /// All names are plain ASCII, so this is also the number of
+    /// Unicode codepoints and the number of graphemes.
+    pub fn len(&self) -> uint {
+        let mut counted = *self;
+        counted.fold(0, |a, s| a + s.len())
+    }
 }
 
 impl Iterator<&'static str> for Name {
@@ -165,7 +176,7 @@ impl Iterator<&'static str> for Name {
     fn size_hint(&self) -> (uint, Option<uint>) {
         // we can estimate exactly by just iterating and summing up.
         let mut counted = *self;
-        let n = counted.fold(0, |a, s| a + s.len());
+        let n = counted.count();
         (n, Some(n))
     }
 }
@@ -461,12 +472,16 @@ mod tests {
                 continue
             }
 
-            let computed_n = name(c).unwrap();
-            let (a, b) = computed_n.size_hint();
+            let mut computed_n = name(c).unwrap();
             let n_str = computed_n.to_string();
             assert_eq!(n_str, n.to_string());
-            assert_eq!(a, n_str.len());
-            assert_eq!(b, Some(n_str.len()));
+            assert_eq!(computed_n.len(), n_str.len());
+
+            let (hint_low, hint_high) = computed_n.size_hint();
+            let number_of_parts = computed_n.count();
+            assert_eq!(hint_low, number_of_parts);
+            assert_eq!(hint_high, Some(number_of_parts));
+
 
             assert_eq!(character(n), Some(c));
             assert_eq!(character(n.to_ascii_lower().as_slice()), Some(c));
