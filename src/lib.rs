@@ -1,13 +1,13 @@
 #![no_std]
 #![feature(phase)]
-#![deny(missing_doc, warnings)]
+#![deny(missing_doc, warnings, unsafe_block)]
 
 //! Convert between characters and their standard names.
 //!
 //! This crate provides two functions for mapping from a `char` to the
 //! name given by the Unicode standard (7.0). There are no runtime
-//! requirements and this is usable with only `core`. The associated
-//! tables are heavily compressed, but still large (500KB).
+//! requirements so this is usable with only `core`. The tables are
+//! heavily compressed, but still large (500KB).
 //!
 //! ```rust
 //! extern crate unicode_names;
