@@ -71,7 +71,6 @@ use core::char;
 use core::collections::Collection;
 use core::fmt::{Show, mod};
 use core::iter::{Iterator, DoubleEndedIterator};
-use core::mem;
 use core::option::{Option, None, Some};
 use core::result::{Err, Ok};
 use core::slice::{ImmutableSlice, ImmutablePartialEqSlice, MutableSlice};
@@ -346,10 +345,7 @@ pub fn character(name: &str) -> Option<char> {
     // ...to find the right index...
     let idx = displace(f1, f2, d1 as u32, d2 as u32) as uint;
     // ...for looking up the codepoint.
-    let raw_codepoint = phf::NAME2CODE_CODE[idx % phf::NAME2CODE_CODE.len()];
-
-    debug_assert!(char::from_u32(raw_codepoint).is_some());
-    let codepoint = unsafe { mem::transmute::<u32, char>(raw_codepoint) };
+    let codepoint = phf::NAME2CODE_CODE[idx % phf::NAME2CODE_CODE.len()];
 
     // Now check that this is actually correct. Since this is a
     // perfect hash table, valid names map precisely to their code

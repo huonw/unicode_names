@@ -345,7 +345,7 @@ fn main() {
         w!(ctxt, "pub static NAME2CODE_N: u64 = {};\n", n);
         ctxt.write_shows("NAME2CODE_DISP", "(u16, u16)", disps.as_slice());
 
-        ctxt.write_shows("NAME2CODE_CODE", "u32", data.as_slice());
+        ctxt.write_array("NAME2CODE_CODE", "char", data.as_slice(), |x| formatting::chr(*x));
     } else {
         if lambda.is_some() { println!("-l/--phf-lambda only applies with --phf") }
         if tries.is_some() { println!("-t/--phf-tries only applies with --phf") }
