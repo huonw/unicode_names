@@ -25,7 +25,8 @@ pub fn plugin_registrar(registrar: &mut Registry) {
     registrar.register_macro("named_char", named_char);
     registrar.register_macro("named", named);
 }
-fn named_char(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<MacResult> {
+fn named_char(cx: &mut ExtCtxt, sp: codemap::Span,
+              tts: &[ast::TokenTree]) -> Box<MacResult+'static> {
     match base::get_single_str_from_tts(cx, sp, tts, "named_char") {
         None => {}
         Some(name) => match unicode_names::character(name.as_slice()) {
@@ -38,7 +39,7 @@ fn named_char(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Bo
     // failed :(
     DummyResult::expr(sp)
 }
-fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<MacResult> {
+fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<MacResult+'static> {
     let string = match base::get_single_str_from_tts(cx, sp, tts, "named") {
         None => return DummyResult::expr(sp),
         Some(s) => s

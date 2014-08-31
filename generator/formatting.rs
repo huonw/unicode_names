@@ -3,7 +3,7 @@ use std::fmt::Show;
 static LINE_LIMIT: uint = 95;
 
 pub struct Context {
-    pub out: Box<Writer>
+    pub out: Box<Writer+'static>
 }
 
 pub fn chr(c: u32) -> String { format!(r"'\U{:08x}'", c as u32) }

@@ -13,9 +13,8 @@ use std::char;
 
 fn main() {
     let number = range(0u32, 0x10FFFF)
-        .filter_map(|x| {
-            char::from_u32(x)
-                .filtered(|&c| unicode_names::name(c).is_some())
+        .filter(|x| {
+            char::from_u32(*x).map_or(false, |c| unicode_names::name(c).is_some())
         })
         .count();
 

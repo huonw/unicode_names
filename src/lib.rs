@@ -604,7 +604,10 @@ mod tests {
         let chars = rand::sample(&mut rng,
                                  range(0u32, 0x10FFFFF)
                                  .filter_map(|x| {
-                                     char::from_u32(x).filtered(|&c| name(c).is_none())
+                                     match char::from_u32(x) {
+                                         Some(c) if name(c).is_none() => Some(c),
+                                         _ => None
+                                     }
                                  }),
                                  10000);
 
@@ -619,7 +622,10 @@ mod tests {
     fn name_all_valid(b: &mut Bencher) {
         let chars = range(0u32, 0x10FFFFF)
             .filter_map(|x| {
-                char::from_u32(x).filtered(|&c| name(c).is_some())
+                match char::from_u32(x) {
+                    Some(c) if name(c).is_some() => Some(c),
+                    _ => None
+                }
             }).collect::<Vec<char>>();
 
         b.iter(|| {
