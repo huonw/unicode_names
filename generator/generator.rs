@@ -40,7 +40,12 @@ fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
     let mut codepoint_names = vec![];
     let mut cjk_ideograph_ranges = vec![];
 
-    for l in iter {
+    loop {
+        let l = match iter.next() {
+            Some(l) => l,
+            None => break
+        };
+
         let (cp, name) = extract(l.as_slice().trim());
         if name.starts_with("<") {
             assert!(name.ends_with(">"), "should >: {}", name);

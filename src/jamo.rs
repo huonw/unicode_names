@@ -36,7 +36,7 @@ pub fn syllable_decomposition(c: char) -> Option<(u8, u8, u8)> {
 
 fn slice_shift_byte<'a>(a: &'a [u8]) -> (Option<u8>, &'a [u8]) {
     match a {
-        [c, ..rest] => (Some(c), rest),
+        [c, rest..] => (Some(c), rest),
         _ => (None, a),
     }
 }
