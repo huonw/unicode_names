@@ -219,7 +219,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // have no information about their length (they were chosen by
     // frequency).
     let mut lexicon_short_lengths = vec![];
-    let mut iter = lexicon_words.move_iter().enumerate();
+    let mut iter = lexicon_words.into_iter().enumerate();
 
     for (i, (_, word, offset)) in iter.by_ref().take(short) {
         lexicon_offsets.push(offset);

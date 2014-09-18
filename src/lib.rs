@@ -226,7 +226,7 @@ pub fn name(c: char) -> Option<Name> {
             let mut data = [b'0', .. 6];
             let mut number = c as u32;
             let mut data_start = 6;
-            for place in data.mut_iter().rev() {
+            for place in data.iter_mut().rev() {
                 // this would be incorrect if U+0000 was CJK unified
                 // ideograph, but it's not, so it's fine.
                 if number == 0 { break }
@@ -296,7 +296,7 @@ pub fn character(name: &str) -> Option<char> {
     // + 1 so that we properly handle the case when `name` has a
     // prefix of the longest name, but isn't exactly equal.
     let mut buf = [0u8, .. MAX_NAME_LENGTH + 1];
-    for (place, byte) in buf.mut_iter().zip(name.bytes()) {
+    for (place, byte) in buf.iter_mut().zip(name.bytes()) {
         *place = ASCII_UPPER_MAP[byte as uint]
     }
     let search_name = buf.slice_to(name.len());
