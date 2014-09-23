@@ -202,7 +202,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // and then sort the rest into groups of equal length, to allow us
     // to avoid storing the full length table; just the indices. The
     // ordering is irrelevant here; just that they are in groups.
-    lexicon_words.mut_slice_from(short)
+    lexicon_words.slice_from_mut(short)
         .sort_by(|&(_, ref a, _), &(_, ref b, _)| a.len().cmp(&b.len()));
 
     // the encoding for each word, to avoid having to recompute it

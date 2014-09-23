@@ -102,17 +102,17 @@ pub struct Name {
 }
 enum Name_ {
     Plain(iter_str::IterStr),
-    CJK(CJK),
-    Hangul(Hangul),
+    CJK(CJK_),
+    Hangul(Hangul_),
 }
 
-struct CJK {
+struct CJK_ {
     emit_prefix: bool,
     idx: u8,
     // the longest character is 0x10FFFF
     data: [u8, .. 6]
 }
-struct Hangul {
+struct Hangul_ {
     emit_prefix: bool,
     idx: u8,
     // stores the choseong, jungseong, jongseong syllable numbers (in
@@ -235,7 +235,7 @@ pub fn name(c: char) -> Option<Name> {
                 data_start -= 1;
             }
             Some(Name {
-                data: CJK(CJK {
+                data: CJK(CJK_ {
                     emit_prefix: true,
                     idx: data_start,
                     data: data
@@ -245,7 +245,7 @@ pub fn name(c: char) -> Option<Name> {
             // maybe it is a hangul syllable?
             jamo::syllable_decomposition(c).map(|(ch, ju, jo)| {
                 Name {
-                    data: Hangul(Hangul {
+                    data: Hangul(Hangul_ {
                         emit_prefix: true,
                         idx: 0,
                         data: [ch, ju, jo]

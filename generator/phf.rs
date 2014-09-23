@@ -43,7 +43,7 @@ fn try_phf_table(values: &[(u32, String)],
     // group the elements into buckets of lambda (on average, for a
     // good hash) based on the suffix of their hash.
     let mut buckets = Vec::from_fn(buckets_len, |i| (i, vec![]));
-    for (i, &(h, cp)) in hashes.iter().enumerate() {
+    for &(h, cp) in hashes.iter() {
         buckets.get_mut(h.g as uint % buckets_len).mut1().push((h, cp))
     }
 
