@@ -14,7 +14,8 @@ impl Context {
 
         let mut width = LINE_LIMIT;
         for e in elements.iter() {
-            let text = format(e).append(",");
+            let mut text = format(e);
+            text.push_str(",");
             if 1 + width + text.len() >= LINE_LIMIT {
                 w!(self, "\n    ");
                 width = 4;

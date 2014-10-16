@@ -16,7 +16,10 @@ impl Trie {
     }
 
     pub fn get_child(&mut self, b: u8) -> &mut Trie {
-        self.children.find_or_insert_with(b, |_| Trie::new())
+        match self.children.entry(b) {
+            hashmap::Occupied(o) => o.into_mut(),
+            hashmap::Vacant(v) => v.set(Trie::new())
+        }
     }
 
     pub fn set_offset<I: Iterator<u8>>(&mut self, mut it: I, offset: uint) {

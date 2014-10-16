@@ -4,7 +4,7 @@
 extern crate getopts;
 
 use std::cmp;
-use std::collections::HashMap;
+use std::collections::{HashMap, hashmap};
 use std::io::{File, BufferedReader, BufferedWriter, mod};
 
 use formatting::Context;
@@ -155,12 +155,15 @@ fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, uint) {
         let mut t2 = vec![];
         for chunk in dat.chunks(1 << shift) {
             // have we stored this chunk already?
-            let index = *cache.find_or_insert_with(chunk, |_| {
-                // no :(, better put it in.
-                let index = t2.len();
-                t2.push_all(chunk);
-                index
-            });
+            let &index = match cache.entry(chunk) {
+                hashmap::Occupied(o) => o.into_mut(),
+                hashmap::Vacant(v) => {
+                    // no :(, better put it in.
+                    let index = t2.len();
+                    t2.push_all(chunk);
+                    v.set(index)
+                }
+            };
             t1.push((index >> shift) as u32)
         }
 
@@ -282,7 +285,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // compress the offsets, hopefully collapsing all the 0's.
     let (t1, t2, shift) = bin_data(phrasebook_offsets.as_slice());
 
-    w!(ctxt, "pub static MAX_NAME_LENGTH: uint = {};\n", longest_name);
+    w!(ctxt, "pub const MAX_NAME_LENGTH: uint = {};\n", longest_name);
     ctxt.write_plain_string("LEXICON", lexicon_string.as_slice());
     ctxt.write_shows("LEXICON_OFFSETS", "u16", lexicon_offsets.as_slice());
     ctxt.write_shows("LEXICON_SHORT_LENGTHS", "u8", lexicon_short_lengths.as_slice());
