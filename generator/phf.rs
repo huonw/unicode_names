@@ -44,7 +44,7 @@ fn try_phf_table(values: &[(u32, String)],
     // good hash) based on the suffix of their hash.
     let mut buckets = Vec::from_fn(buckets_len, |i| (i, vec![]));
     for &(h, cp) in hashes.iter() {
-        buckets.get_mut(h.g as uint % buckets_len).mut1().push((h, cp))
+        buckets[h.g as uint % buckets_len].mut1().push((h, cp))
     }
 
     // place the large buckets first.
@@ -104,15 +104,15 @@ fn try_phf_table(values: &[(u32, String)],
                         // displacements doesn't work.
                         continue 'next_disp
                     }
-                    *try_map.get_mut(idx) = generation;
+                    try_map[idx] = generation;
                     values_to_add.push((idx, cp));
                 }
 
                 // everything works! let's lock it in and go to the
                 // next bucket.
-                *disps.get_mut(bkt_idx) = (d1, d2);
+                disps[bkt_idx] = (d1, d2);
                 for &(idx, cp) in values_to_add.iter() {
-                    *map.get_mut(idx) = cp
+                    map[idx] = cp
                 }
                 continue 'next_bucket
             }
@@ -146,6 +146,6 @@ pub fn create_phf(data: &[(u32, String)], lambda: uint,
             None => {}
         }
     }
-    fail!("could not create a length {} PHF with {}, {}",
+    panic!("could not create a length {} PHF with {}, {}",
           data.len(), lambda, max_tries);
 }

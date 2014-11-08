@@ -1,6 +1,6 @@
 #![no_std]
-#![feature(phase)]
-#![deny(missing_doc, warnings, unsafe_block)]
+#![feature(phase, globs)]
+#![deny(missing_docs, warnings, unsafe_blocks)]
 
 //! Convert between characters and their standard names.
 //!
@@ -67,14 +67,9 @@
 #[cfg(test)] extern crate native;
 #[cfg(test)] extern crate test;
 
+use core::prelude::*;
 use core::char;
-use core::collections::Collection;
 use core::fmt::{Show, mod};
-use core::iter::{Iterator, DoubleEndedIterator};
-use core::option::{Option, None, Some};
-use core::result::{Err, Ok};
-use core::slice::{ImmutableSlice, ImmutablePartialEqSlice, MutableSlice};
-use core::str::StrSlice;
 
 use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2, MAX_NAME_LENGTH};
 use generated_phf as phf;
@@ -425,17 +420,11 @@ static ASCII_UPPER_MAP: [u8, ..256] = [
 
 #[cfg(test)]
 mod tests {
+    use std::prelude::*;
     use std::ascii::AsciiExt;
     use std::char;
-    use std::collections::Collection;
-    use std::from_str;
-    use std::iter::{Iterator, range, range_inclusive};
-    use std::option::{None, Some};
+    use std::iter::{range_inclusive};
     use std::rand::{XorShiftRng, SeedableRng, mod};
-    use std::slice::ImmutableSlice;
-    use std::str::{Str, StrSlice};
-    use std::to_string::ToString;
-    use std::vec::Vec;
 
     use test::{mod, Bencher};
     use super::{generated, name, character, is_cjk_unified_ideograph, jamo};
@@ -462,7 +451,7 @@ mod tests {
             let mut it = line.split(';');
 
             let raw_c = it.next();
-            let c = match char::from_u32(raw_c.and_then(from_str::from_str).unwrap()) {
+            let c = match char::from_u32(raw_c.and_then(from_str).unwrap()) {
                 Some(c) => c,
                 None => continue
             };

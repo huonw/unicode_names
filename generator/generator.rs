@@ -3,8 +3,8 @@
 #[phase(plugin, link)] extern crate log;
 extern crate getopts;
 
-use std::cmp;
-use std::collections::{HashMap, hashmap};
+use std::{cmp, vec};
+use std::collections::{HashMap, hash_map};
 use std::io::{File, BufferedReader, BufferedWriter, mod};
 
 use formatting::Context;
@@ -29,8 +29,8 @@ static SPLITTERS: &'static [u8] = b"-";
 fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
     fn extract(line: &str) -> (u32, &str) {
         let mut splits = line.split(';');
-        let cp = splits.next().and_then(from_str).unwrap_or_else(|| fail!("invalid {}", line));
-        let name = splits.next().unwrap_or_else(|| fail!("missing name {}", line));
+        let cp = splits.next().and_then(from_str).unwrap_or_else(|| panic!("invalid {}", line));
+        let name = splits.next().unwrap_or_else(|| panic!("missing name {}", line));
         (cp, name)
     }
 
@@ -68,7 +68,7 @@ fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
                 } else if name.ends_with("Last") {
                     assert_eq!(cp, 0xD7A3);
                 } else {
-                    fail!("unknown hangul syllable {}", name)
+                    panic!("unknown hangul syllable {}", name)
                 }
             }
         } else {
@@ -156,8 +156,8 @@ fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, uint) {
         for chunk in dat.chunks(1 << shift) {
             // have we stored this chunk already?
             let &index = match cache.entry(chunk) {
-                hashmap::Occupied(o) => o.into_mut(),
-                hashmap::Vacant(v) => {
+                hash_map::Occupied(o) => o.into_mut(),
+                hash_map::Vacant(v) => {
                     // no :(, better put it in.
                     let index = t2.len();
                     t2.push_all(chunk);
@@ -228,7 +228,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
         lexicon_offsets.push(offset);
         lexicon_short_lengths.push(word.len());
         // encoded as a single byte.
-        assert!(word_encodings.insert(word, vec![i as u32]))
+        assert!(word_encodings.insert(word, vec![i as u32]).is_none())
     }
 
     // this stores (end point, length) for each block of words of a
@@ -247,7 +247,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
             previous_len = len;
         }
 
-        assert!(word_encodings.insert(word, vec![hi as u32, lo as u32]));
+        assert!(word_encodings.insert(word, vec![hi as u32, lo as u32]).is_none());
     }
     // don't forget the last one.
     lexicon_ordered_lengths.push((lexicon_offsets.len(), previous_len));
@@ -264,11 +264,11 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
         longest_name = cmp::max(name.len(), longest_name);
 
         let start = phrasebook.len() as u32;
-        *phrasebook_offsets.get_mut(cp as uint) = start;
+        phrasebook_offsets[cp as uint] = start;
 
         let mut last_len = 0;
         for w in util::split(name.as_slice(), SPLITTERS) {
-            let data = word_encodings.find_equiv(&w.as_bytes()).unwrap();
+            let data = word_encodings.find_equiv(&*vec::as_vec(w.as_bytes())).unwrap();
             last_len = data.len();
             // info!("{}: '{}' {}", name, w, data);
 
@@ -279,7 +279,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
         // add the high bit to the first byte of the last encoded
         // phrase, to indicate the end.
         let idx = phrasebook.len() - last_len;
-        *phrasebook.get_mut(idx) |= 0b1000_0000;
+        phrasebook[idx] |= 0b1000_0000;
     }
 
     // compress the offsets, hopefully collapsing all the 0's.
@@ -309,7 +309,7 @@ fn main() {
         getopts::optflag("h", "help", "print this message"),
         ];
     let matches = match getopts::getopts(std::os::args().tail(), opts) {
-        Ok(m) => m, Err(f) => fail!(f.to_string()),
+        Ok(m) => m, Err(f) => panic!(f.to_string()),
     };
 
     if matches.opt_present("h") {

@@ -1,6 +1,6 @@
 //! Algorithmic mapping for hangul syllables.
 
-use core::option::{Option, None, Some};
+use core::prelude::*;
 
 // derived from Jamo.txt
 pub static CHOSEONG: &'static [&'static str] =
@@ -167,10 +167,7 @@ pub fn slice_shift_jongseong<'a>(name: &'a [u8]) -> (Option<u32>, &'a [u8]) {
 
 #[cfg(test)]
 mod tests {
-    use core::slice::ImmutableSlice;
-    use core::option::{None, Some};
-    use core::iter::Iterator;
-    use core::str::StrSlice;
+    use std::prelude::*;
 
     #[test]
     fn correct_slice_shift_choseong() {

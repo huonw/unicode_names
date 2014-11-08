@@ -1,4 +1,4 @@
-use std::collections::{HashMap, hashmap};
+use std::collections::{HashMap, hash_map};
 
 pub struct Trie {
     children: HashMap<u8, Trie>,
@@ -17,8 +17,8 @@ impl Trie {
 
     pub fn get_child(&mut self, b: u8) -> &mut Trie {
         match self.children.entry(b) {
-            hashmap::Occupied(o) => o.into_mut(),
-            hashmap::Vacant(v) => v.set(Trie::new())
+            hash_map::Occupied(o) => o.into_mut(),
+            hash_map::Vacant(v) => v.set(Trie::new())
         }
     }
 
@@ -61,7 +61,7 @@ impl Trie {
 pub struct Items<'a> {
     parents: Vec<u8>,
     current: Option<&'a Trie>,
-    stack: Vec<hashmap::Entries<'a, u8, Trie>>
+    stack: Vec<hash_map::Entries<'a, u8, Trie>>
 }
 
 impl<'a> Iterator<(uint, Vec<u8>, Option<uint>)> for Items<'a> {

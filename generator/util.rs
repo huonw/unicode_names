@@ -4,7 +4,7 @@ pub fn smallest_index(n: uint) -> uint {
     for &x in [8, 16, 32, 64].iter() {
         if n < (1 << x) { return x / 8 }
     }
-    fail!("{} too large", n)
+    panic!("{} too large", n)
 }
 pub fn smallest_type<I: Iterator<u32>>(mut x: I) -> uint {
     smallest_index(x.max().unwrap_or(0) as uint)

@@ -1,9 +1,5 @@
+use core::prelude::*;
 use core::{slice, fmt};
-use core::slice::ImmutableSlice;
-use core::str::StrSlice;
-use core::iter::Iterator;
-use core::option::{Option, Some, None};
-use core::result::{Err, Ok};
 
 use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_SHORT_LENGTHS, LEXICON_ORDERED_LENGTHS,
                 LEXICON_OFFSETS, LEXICON};
