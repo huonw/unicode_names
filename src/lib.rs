@@ -34,7 +34,7 @@
 //!   sequences cannot be customised, so the extra backslash (or a raw
 //!   string) is required.
 //!
-//! ```rust,ignore
+//! ```rust
 //! #![feature(phase)]
 //!
 //! #[phase(plugin)] extern crate unicode_names_macros;

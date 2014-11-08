@@ -3,3 +3,6 @@
 name = "unicode_names"
 version = "0.0.1"
 authors = ["Huon Wilson <dbau.pp@gmail.com>"]
+
+[dev-dependencies.unicode_names_macros]
+path = "unicode_names_macros"
