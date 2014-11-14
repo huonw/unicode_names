@@ -1,8 +1,29 @@
 [package]
 
 name = "unicode_names"
-version = "0.0.1"
-authors = ["Huon Wilson <dbau.pp@gmail.com>"]
+version = "0.1.0"
+authors = ["Huon Wilson <dbau.pp@gmail.com>",
+           "Kang Seonghoon <public+rust@mearie.org>"]
 
-[dev-dependencies.unicode_names_macros]
-path = "unicode_names_macros"
+homepage = "https://github.com/huonw/unicode_names"
+repository = "https://github.com/huonw/unicode_names"
+documentation = "http://huonw.github.io/unicode_names/unicode_names/"
+license = "MIT/APL2"
+keywords = ["text", "unicode"]
+readme = "README.md"
+description = """
+Map characters to and from their name given in the Unicode standard.
+This goes to great lengths to be as efficient as possible in both time
+and space, with the full bidirectional tables weighing barely 500 KB
+but still offering O(1)* look-up in both directions. (*more precisely,
+O(length of name).)
+"""
+
+exclude = [
+        "data/*",
+        "generator/*",
+        "unicode_names_macros/*",
+]
+
+# [dev-dependencies.unicode_names_macros]
+# path = "unicode_names_macros"
