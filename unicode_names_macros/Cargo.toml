@@ -1,18 +1,19 @@
 [package]
 
 name = "unicode_names_macros"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Huon Wilson <dbau.pp@gmail.com>"]
 
 homepage = "https://github.com/huonw/unicode_names"
 repository = "https://github.com/huonw/unicode_names"
 documentation = "http://huonw.github.io/unicode_names/unicode_names/"
-license = "MIT/APL2"
+license = "MIT/Apache-2.0"
 keywords = ["text", "unicode", "plugin"]
 description = "Support macros for `unicode_names`."
 
 [dependencies.unicode_names]
 path = ".."
+version = "0.1.0"
 
 [lib]
 name = "unicode_names_macros"
