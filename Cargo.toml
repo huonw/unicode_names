@@ -22,7 +22,6 @@ O(length of name).)
 exclude = [
         "data/*",
         "generator/*",
-        "unicode_names_macros/*",
 ]
 
 [dev-dependencies.unicode_names_macros]
