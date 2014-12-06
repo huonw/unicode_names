@@ -7,7 +7,9 @@
 //! This crate provides two functions for mapping from a `char` to the
 //! name given by the Unicode standard (7.0). There are no runtime
 //! requirements so this is usable with only `core`. The tables are
-//! heavily compressed, but still large (500KB).
+//! heavily compressed, but still large (500KB), and still offer
+//! efficient `O(1)` look-ups in both directions (more precisely,
+//! `O(length of name)`).
 //!
 //! ```rust
 //! extern crate unicode_names;
@@ -64,7 +66,6 @@
 #[phase(link, plugin)] extern crate core;
 
 #[cfg(test)] #[phase(link, plugin)] extern crate std;
-#[cfg(test)] extern crate native;
 #[cfg(test)] extern crate test;
 
 use core::prelude::*;
@@ -121,7 +122,7 @@ impl Name {
     /// All names are plain ASCII, so this is also the number of
     /// Unicode codepoints and the number of graphemes.
     pub fn len(&self) -> uint {
-        let mut counted = *self;
+        let counted = *self;
         counted.fold(0, |a, s| a + s.len())
     }
 }
@@ -129,8 +130,8 @@ impl Name {
 impl Iterator<&'static str> for Name {
     fn next(&mut self) -> Option<&'static str> {
         match self.data {
-            Plain(ref mut s) => s.next(),
-            CJK(ref mut state) => {
+            Name_::Plain(ref mut s) => s.next(),
+            Name_::CJK(ref mut state) => {
                 // we're a CJK unified ideograph
                 if state.emit_prefix {
                     state.emit_prefix = false;
@@ -148,7 +149,7 @@ impl Iterator<&'static str> for Name {
                         DIGITS.slice(d, d + 1)
                     })
             }
-            Hangul(ref mut state) => {
+            Name_::Hangul(ref mut state) => {
                 if state.emit_prefix {
                     state.emit_prefix = false;
                     return Some(HANGUL_SYLLABLE_PREFIX)
@@ -170,7 +171,7 @@ impl Iterator<&'static str> for Name {
 
     fn size_hint(&self) -> (uint, Option<uint>) {
         // we can estimate exactly by just iterating and summing up.
-        let mut counted = *self;
+        let counted = *self;
         let n = counted.count();
         (n, Some(n))
     }
@@ -230,7 +231,7 @@ pub fn name(c: char) -> Option<Name> {
                 data_start -= 1;
             }
             Some(Name {
-                data: CJK(CJK_ {
+                data: Name_::CJK(CJK_ {
                     emit_prefix: true,
                     idx: data_start,
                     data: data
@@ -240,7 +241,7 @@ pub fn name(c: char) -> Option<Name> {
             // maybe it is a hangul syllable?
             jamo::syllable_decomposition(c).map(|(ch, ju, jo)| {
                 Name {
-                    data: Hangul(Hangul_ {
+                    data: Name_::Hangul(Hangul_ {
                         emit_prefix: true,
                         idx: 0,
                         data: [ch, ju, jo]
@@ -250,7 +251,7 @@ pub fn name(c: char) -> Option<Name> {
         }
     } else {
         Some(Name {
-            data:  Plain(iter_str::IterStr::new(offset as uint))
+            data:  Name_::Plain(iter_str::IterStr::new(offset as uint))
         })
     }
 }
@@ -461,7 +462,7 @@ mod tests {
                 continue
             }
 
-            let mut computed_n = name(c).unwrap();
+            let computed_n = name(c).unwrap();
             let n_str = computed_n.to_string();
             assert_eq!(n_str, n.to_string());
             assert_eq!(computed_n.len(), n_str.len());

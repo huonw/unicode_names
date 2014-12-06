@@ -25,5 +25,5 @@ exclude = [
         "unicode_names_macros/*",
 ]
 
-# [dev-dependencies.unicode_names_macros]
-# path = "unicode_names_macros"
+[dev-dependencies.unicode_names_macros]
+path = "unicode_names_macros"
