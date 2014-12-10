@@ -428,7 +428,7 @@ mod tests {
     use std::rand::{XorShiftRng, SeedableRng, mod};
 
     use test::{mod, Bencher};
-    use super::{generated, name, character, is_cjk_unified_ideograph, jamo};
+    use super::{generated, name, character, is_cjk_unified_ideograph, jamo, Name};
 
     static DATA: &'static str = include_str!("../data/codepoint_name.csv");
 
@@ -634,11 +634,11 @@ mod tests {
                                                            0x00FF00FF, 0x0F0F0F0F]);
 
         let names = rand::sample(&mut rng,
-                                 range(0u32, 0x10FFFFF)
-                                 .filter_map(|x| {
-                                     char::from_u32(x).and_then(name).map(|n| n.to_string())
-                                 }),
-                                 10000);
+                                 range(0u32, 0x10FFFFF).filter_map(|x| char::from_u32(x).and_then(name)),
+                                 10000)
+            .iter()
+            .map(|n: &Name| n.to_string())
+            .collect::<Vec<_>>();
 
         b.iter(|| {
             for n in names.iter() {
