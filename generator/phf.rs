@@ -29,6 +29,7 @@ fn split(hash: u64) -> Hash {
     }
 }
 
+#[deriving(Copy)]
 struct Hash { g: u32, f1: u32, f2: u32 }
 
 fn try_phf_table(values: &[(u32, String)],
@@ -44,7 +45,7 @@ fn try_phf_table(values: &[(u32, String)],
     // good hash) based on the suffix of their hash.
     let mut buckets = Vec::from_fn(buckets_len, |i| (i, vec![]));
     for &(h, cp) in hashes.iter() {
-        buckets[h.g as uint % buckets_len].mut1().push((h, cp))
+        buckets[h.g as uint % buckets_len].1.push((h, cp))
     }
 
     // place the large buckets first.

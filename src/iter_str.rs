@@ -4,8 +4,9 @@ use core::{slice, fmt};
 use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_SHORT_LENGTHS, LEXICON_ORDERED_LENGTHS,
                 LEXICON_OFFSETS, LEXICON};
 
+#[deriving(Clone)]
 pub struct IterStr {
-    phrasebook: slice::Items<'static u8>,
+    phrasebook: slice::Iter<'static u8>,
     last_was_word: bool
 }
 
@@ -74,7 +75,7 @@ impl Iterator<&'static str> for IterStr {
 
 impl fmt::Show for IterStr {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        let mut printed = *self;
+        let mut printed = self.clone();
         for s in printed {
             try!(write!(fmtr, "{}", s))
         }

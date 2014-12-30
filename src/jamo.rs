@@ -15,7 +15,7 @@ pub static JONGSEONG: &'static [&'static str] =
       "SS", "NG", "J", "C", "K", "T", "P", "H"];
 
 pub fn is_hangul_syllable(c: char) -> bool {
-    '\uAC00' <= c && c <= '\uD7A3'
+    '\u{AC00}' <= c && c <= '\u{D7A3}'
 }
 
 pub fn syllable_decomposition(c: char) -> Option<(u8, u8, u8)> {

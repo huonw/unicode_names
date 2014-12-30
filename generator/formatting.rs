@@ -1,3 +1,4 @@
+use std::char;
 use std::fmt::Show;
 
 static LINE_LIMIT: uint = 95;
@@ -6,7 +7,7 @@ pub struct Context {
     pub out: Box<Writer+'static>
 }
 
-pub fn chr(c: u32) -> String { format!(r"'\U{:08x}'", c as u32) }
+pub fn chr(c: u32) -> String { char::from_u32(c).unwrap().escape_unicode().collect() }
 
 impl Context {
     pub fn write_array<T>(&mut self, name: &str, ty: &str, elements: &[T], format: |&T| -> String) {

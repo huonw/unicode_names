@@ -48,11 +48,11 @@ fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<Mac
      // make sure unclosed braces don't escape.
     static NAMES: regex::Regex = regex!(r"\\N\{(.*?)(?:\}|$)");
 
-    let new = NAMES.replace_all(string.as_slice(), |c: &regex::Captures| {
-        if !c.at(0).ends_with("}") {
+    let new = NAMES.replace_all(string.as_slice(), |&: c: &regex::Captures| {
+        if !c.at(0).unwrap().ends_with("}") {
             cx.span_err(sp, format!("unclosed escaped in `named!`: {}", c.at(0)).as_slice());
         } else {
-            match unicode_names::character(c.at(1)) {
+            match unicode_names::character(c.at(1).unwrap()) {
                 Some(c) => return String::from_char(1, c),
                 None => {
                     cx.span_err(sp, format!("`{}` does not name a character", c.at(1)).as_slice());

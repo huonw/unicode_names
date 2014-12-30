@@ -29,7 +29,8 @@ static SPLITTERS: &'static [u8] = b"-";
 fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
     fn extract(line: &str) -> (u32, &str) {
         let mut splits = line.split(';');
-        let cp = splits.next().and_then(from_str).unwrap_or_else(|| panic!("invalid {}", line));
+        let cp = splits.next().and_then(StrExt::parse)
+            .unwrap_or_else(|| panic!("invalid {}", line));
         let name = splits.next().unwrap_or_else(|| panic!("missing name {}", line));
         (cp, name)
     }
@@ -89,7 +90,7 @@ fn write_cjk_ideograph_ranges(ctxt: &mut Context, ranges: &[(u32, u32)]) {
 fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (String,
                                                                            Vec<(uint, Vec<u8>,
                                                                                 uint)>) {
-    codepoint_names.sort_by(|a, b| a.ref1().len().cmp(&b.ref1().len()).reverse());
+    codepoint_names.sort_by(|a, b| a.1.len().cmp(&b.1.len()).reverse());
 
     // a trie of all the suffixes of the data,
     let mut t = trie::Trie::new();
@@ -122,7 +123,7 @@ fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (Strin
                 // upto a certain length, but this only saves ~300
                 // bytes or so and is noticably slower).
                 for i in range(1, n.len()) {
-                    if t.insert(n.slice_from(i).bytes(), Some(offset + i), true).val0() {
+                    if t.insert(n.slice_from(i).bytes(), Some(offset + i), true).0 {
                         // once we've found a string that's already
                         // been inserted, we know all suffixes will've
                         // been inserted too.
@@ -156,8 +157,8 @@ fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, uint) {
         for chunk in dat.chunks(1 << shift) {
             // have we stored this chunk already?
             let &index = match cache.entry(chunk) {
-                hash_map::Occupied(o) => o.into_mut(),
-                hash_map::Vacant(v) => {
+                hash_map::Entry::Occupied(o) => o.into_mut(),
+                hash_map::Entry::Vacant(v) => {
                     // no :(, better put it in.
                     let index = t2.len();
                     t2.push_all(chunk);
@@ -268,7 +269,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
 
         let mut last_len = 0;
         for w in util::split(name.as_slice(), SPLITTERS) {
-            let data = word_encodings.find_equiv(&*vec::as_vec(w.as_bytes())).unwrap();
+            let data = word_encodings.get(&*vec::as_vec(w.as_bytes())).unwrap();
             last_len = data.len();
             // info!("{}: '{}' {}", name, w, data);
 
@@ -308,12 +309,12 @@ fn main() {
         getopts::optopt("", "truncate", "only handle the first N", "N"),
         getopts::optflag("h", "help", "print this message"),
         ];
-    let matches = match getopts::getopts(std::os::args().tail(), opts) {
+    let matches = match getopts::getopts(std::os::args().tail(), &opts) {
         Ok(m) => m, Err(f) => panic!(f.to_string()),
     };
 
     if matches.opt_present("h") {
-        println!("{}", getopts::usage("generate compressed codepoint <-> name tables", opts));
+        println!("{}", getopts::usage("generate compressed codepoint <-> name tables", &opts));
         return
     }
     let do_phf = matches.opt_present("phf");
@@ -338,7 +339,7 @@ fn main() {
     let tries = matches.opt_str("phf-tries");
 
     let (mut codepoint_names, cjk) = get_table_data();
-    match matches.opt_str("truncate").map(|s| from_str(s.as_slice()).unwrap()) {
+    match matches.opt_str("truncate").map(|s| s.parse()).unwrap() {
         Some(n) => codepoint_names.truncate(n),
         None => {}
     }
@@ -346,8 +347,8 @@ fn main() {
     if do_phf {
         let (n, disps, data) =
             phf::create_phf(codepoint_names.as_slice(),
-                            lambda.map(|s| from_str(s.as_slice()).unwrap()).unwrap_or(3),
-                            tries.map(|s| from_str(s.as_slice()).unwrap()).unwrap_or(2));
+                            lambda.map(|s| s.parse()).unwrap().unwrap_or(3),
+                            tries.map(|s| s.parse()).unwrap().unwrap_or(2));
 
 
         w!(ctxt, "pub static NAME2CODE_N: u64 = {};\n", n);

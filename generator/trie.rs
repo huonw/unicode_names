@@ -1,4 +1,5 @@
-use std::collections::{HashMap, hash_map};
+use std::collections::HashMap;
+use std::collections::hash_map::{mod, Entry};
 
 pub struct Trie {
     children: HashMap<u8, Trie>,
@@ -17,8 +18,8 @@ impl Trie {
 
     pub fn get_child(&mut self, b: u8) -> &mut Trie {
         match self.children.entry(b) {
-            hash_map::Occupied(o) => o.into_mut(),
-            hash_map::Vacant(v) => v.set(Trie::new())
+            Entry::Occupied(o) => o.into_mut(),
+            Entry::Vacant(v) => v.set(Trie::new())
         }
     }
 

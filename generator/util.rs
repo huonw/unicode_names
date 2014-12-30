@@ -6,7 +6,7 @@ pub fn smallest_index(n: uint) -> uint {
     }
     panic!("{} too large", n)
 }
-pub fn smallest_type<I: Iterator<u32>>(mut x: I) -> uint {
+pub fn smallest_type<I: Iterator<u32>>(x: I) -> uint {
     smallest_index(x.max().unwrap_or(0) as uint)
 }
 pub fn smallest_u<I: Iterator<u32>>(x: I) -> String {

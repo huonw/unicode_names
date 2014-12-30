@@ -93,21 +93,25 @@ fn is_cjk_unified_ideograph(ch: char) -> bool {
 ///
 /// The size hint is exact for the number of pieces, but iterates
 /// (although iteration is cheap and all names are short).
+#[deriving(Clone)]
 pub struct Name {
     data: Name_
 }
+#[deriving(Clone)]
 enum Name_ {
     Plain(iter_str::IterStr),
     CJK(CJK),
     Hangul(Hangul),
 }
 
+#[deriving(Copy)]
 struct CJK {
     emit_prefix: bool,
     idx: u8,
     // the longest character is 0x10FFFF
     data: [u8, .. 6]
 }
+#[deriving(Copy)]
 struct Hangul {
     emit_prefix: bool,
     idx: u8,
@@ -115,6 +119,8 @@ struct Hangul {
     // that order)
     data: [u8, .. 3]
 }
+impl Clone for CJK { fn clone(&self) -> CJK { *self } }
+impl Clone for Hangul { fn clone(&self) -> Hangul { *self } }
 
 impl Name {
     /// The number of bytes in the name.
@@ -122,7 +128,7 @@ impl Name {
     /// All names are plain ASCII, so this is also the number of
     /// Unicode codepoints and the number of graphemes.
     pub fn len(&self) -> uint {
-        let counted = *self;
+        let counted = self.clone();
         counted.fold(0, |a, s| a + s.len())
     }
 }
@@ -171,7 +177,7 @@ impl Iterator<&'static str> for Name {
 
     fn size_hint(&self) -> (uint, Option<uint>) {
         // we can estimate exactly by just iterating and summing up.
-        let counted = *self;
+        let counted = self.clone();
         let n = counted.count();
         (n, Some(n))
     }
@@ -179,7 +185,7 @@ impl Iterator<&'static str> for Name {
 
 impl Show for Name {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        let mut printed = *self;
+        let mut printed = self.clone();
         for s in printed {
             try!(write!(fmtr, "{}", s))
         }
@@ -199,7 +205,7 @@ impl Show for Name {
 /// ```rust
 /// assert_eq!(unicode_names::name('a').map(|n| n.to_string()),
 ///            Some("LATIN SMALL LETTER A".to_string()));
-/// assert_eq!(unicode_names::name('\u2605').map(|n| n.to_string()),
+/// assert_eq!(unicode_names::name('\u{2605}').map(|n| n.to_string()),
 ///            Some("BLACK STAR".to_string()));
 /// assert_eq!(unicode_names::name('☃').map(|n| n.to_string()),
 ///            Some("SNOWMAN".to_string()));
@@ -207,7 +213,7 @@ impl Show for Name {
 /// // control code
 /// assert!(unicode_names::name('\x00').is_none());
 /// // unassigned
-/// assert!(unicode_names::name('\U0010FFFF').is_none());
+/// assert!(unicode_names::name('\u{10FFFF}').is_none());
 /// ```
 pub fn name(c: char) -> Option<Name> {
     let cc = c as uint;
@@ -452,7 +458,7 @@ mod tests {
             let mut it = line.split(';');
 
             let raw_c = it.next();
-            let c = match char::from_u32(raw_c.and_then(from_str).unwrap()) {
+            let c = match char::from_u32(raw_c.and_then(StrExt::parse).unwrap()) {
                 Some(c) => c,
                 None => continue
             };
@@ -474,7 +480,7 @@ mod tests {
 
 
             assert_eq!(character(n), Some(c));
-            assert_eq!(character(n.to_ascii_lower().as_slice()), Some(c));
+            assert_eq!(character(n.to_ascii_lowercase().as_slice()), Some(c));
 
             negative_range(last, c as u32);
             last = c as u32 + 1;
@@ -506,19 +512,19 @@ mod tests {
 
     #[test]
     fn name_hangul_syllable() {
-        assert_eq!(name('\uac00').map(|s| s.to_string()),
+        assert_eq!(name('\u{ac00}').map(|s| s.to_string()),
                    Some("HANGUL SYLLABLE GA".to_string())); // first
-        assert_eq!(name('\ubdc1').map(|s| s.to_string()),
+        assert_eq!(name('\u{bdc1}').map(|s| s.to_string()),
                    Some("HANGUL SYLLABLE BWELG".to_string()));
-        assert_eq!(name('\ud7a3').map(|s| s.to_string()),
+        assert_eq!(name('\u{d7a3}').map(|s| s.to_string()),
                    Some("HANGUL SYLLABLE HIH".to_string())); // last
     }
 
     #[test]
     fn character_hangul_syllable() {
-        assert_eq!(character("HANGUL SYLLABLE GA"), Some('\uac00'));
-        assert_eq!(character("HANGUL SYLLABLE BWELG"), Some('\ubdc1'));
-        assert_eq!(character("HANGUL SYLLABLE HIH"), Some('\ud7a3'));
+        assert_eq!(character("HANGUL SYLLABLE GA"), Some('\u{ac00}'));
+        assert_eq!(character("HANGUL SYLLABLE BWELG"), Some('\u{bdc1}'));
+        assert_eq!(character("HANGUL SYLLABLE HIH"), Some('\u{d7a3}'));
         assert_eq!(character("HANGUL SYLLABLE BLAH"), None);
     }
 
@@ -540,28 +546,28 @@ mod tests {
     }
     #[test]
     fn name_cjk_unified_ideograph() {
-        assert_eq!(name('\u4e00').map(|s| s.to_string()),
+        assert_eq!(name('\u{4e00}').map(|s| s.to_string()),
                    Some("CJK UNIFIED IDEOGRAPH-4E00".to_string())); // first in BMP
-        assert_eq!(name('\u9fcc').map(|s| s.to_string()),
+        assert_eq!(name('\u{9fcc}').map(|s| s.to_string()),
                    Some("CJK UNIFIED IDEOGRAPH-9FCC".to_string())); // last in BMP (as of 6.1)
-        assert_eq!(name('\U00020000').map(|s| s.to_string()),
+        assert_eq!(name('\u{20000}').map(|s| s.to_string()),
                    Some("CJK UNIFIED IDEOGRAPH-20000".to_string())); // first in SIP
-        assert_eq!(name('\U0002a6d6').map(|s| s.to_string()),
+        assert_eq!(name('\u{2a6d6}').map(|s| s.to_string()),
                    Some("CJK UNIFIED IDEOGRAPH-2A6D6".to_string()));
-        assert_eq!(name('\U0002a700').map(|s| s.to_string()),
+        assert_eq!(name('\u{2a700}').map(|s| s.to_string()),
                    Some("CJK UNIFIED IDEOGRAPH-2A700".to_string()));
-        assert_eq!(name('\U0002b81d').map(|s| s.to_string()),
+        assert_eq!(name('\u{2b81d}').map(|s| s.to_string()),
                    Some("CJK UNIFIED IDEOGRAPH-2B81D".to_string())); // last in SIP (as of 6.0)
     }
 
     #[test]
     fn character_cjk_unified_ideograph() {
-        assert_eq!(character("CJK UNIFIED IDEOGRAPH-4E00"), Some('\u4e00'));
-        assert_eq!(character("CJK UNIFIED IDEOGRAPH-9FCC"), Some('\u9fcc'));
-        assert_eq!(character("CJK UNIFIED IDEOGRAPH-20000"), Some('\U00020000'));
-        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A6D6"), Some('\U0002a6d6'));
-        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A700"), Some('\U0002a700'));
-        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2B81D"), Some('\U0002b81d'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-4E00"), Some('\u{4e00}'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-9FCC"), Some('\u{9fcc}'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-20000"), Some('\u{20000}'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A6D6"), Some('\u{2a6d6}'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2A700"), Some('\u{2a700}'));
+        assert_eq!(character("CJK UNIFIED IDEOGRAPH-2B81D"), Some('\u{2b81d}'));
         assert_eq!(character("CJK UNIFIED IDEOGRAPH-"), None);
         assert_eq!(character("CJK UNIFIED IDEOGRAPH-!@#$"), None);
         assert_eq!(character("CJK UNIFIED IDEOGRAPH-1234"), None);
@@ -650,5 +656,5 @@ mod tests {
 
 #[cfg(not(test))]
 mod std {
-    pub use core::fmt;
+    pub use core::{clone, fmt, kinds};
 }
