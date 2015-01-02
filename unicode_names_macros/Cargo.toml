@@ -1,7 +1,7 @@
 [package]
 
 name = "unicode_names_macros"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Huon Wilson <dbau.pp@gmail.com>"]
 
 homepage = "https://github.com/huonw/unicode_names"
@@ -13,7 +13,7 @@ description = "Support macros for `unicode_names`."
 
 [dependencies.unicode_names]
 path = ".."
-version = "0.1.0"
+version = "0.1.1"
 
 [lib]
 name = "unicode_names_macros"

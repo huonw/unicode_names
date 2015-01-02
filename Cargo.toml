@@ -1,7 +1,7 @@
 [package]
 
 name = "unicode_names"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Huon Wilson <dbau.pp@gmail.com>",
            "Kang Seonghoon <public+rust@mearie.org>"]
 
@@ -26,3 +26,4 @@ exclude = [
 
 [dev-dependencies.unicode_names_macros]
 path = "unicode_names_macros"
+version = "*"
