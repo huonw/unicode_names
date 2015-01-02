@@ -1,11 +1,11 @@
+language: rust
+sudo: false
 env:
   global:
-    - secure: oIoJ4+fgDr2U5IBxDzVHjjQxdv2SVYcVI7jvKqQjzfQM4YxDOBllNMEd1uZQIIfiOOHZdlvhmGqRtYnEBHhP8M0e8jYsvvTjf+zHf8F2L7S5YR8m46l2KWLAshTVEQWOVVM8RAf420cyyN91RDKUnbmFXOLBWqHBRlESmewMQdI=
-install:
-  - curl https://static.rust-lang.org/rustup.sh | sudo sh -
+    - secure: YFTnaQxv/pDDkFFCJCl3M7F4OICjF3bVC5zfSya8WuH40eL42++7UijbrzgmWgNq2NGDtiLulSE4ZrCT4JK6PgZ/ArCYNN6sNPs0n3KhcZ9PuXNQ3kaj3QSrtil9hN8l26fDCcL2if7Y78yT+7MZ75NPXvc2PSlQ6Rfpl7xziD8=
 script:
-  - cargo build --verbose && cargo test --verbose && cargo doc --verbose && mv target/doc doc
-  - ( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )
-  - ( cd generator && rustc generator.rs -O && ./generator -s )
-after_script:
-  - curl http://www.rust-ci.org/artifacts/put?t=$RUSTCI_TOKEN | sh
+  - cargo build --verbose && cargo test --verbose && cargo doc --verbose
+  - "( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )"
+  - "( cd generator && rustc generator.rs -O && ./generator -s )"
+after_success:
+  - test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh
