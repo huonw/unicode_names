@@ -15,7 +15,7 @@ extern crate unicode_names;
 use syntax::ast;
 use syntax::codemap;
 use syntax::parse::token;
-use syntax::ext::base::{mod, ExtCtxt, MacResult, MacExpr, DummyResult};
+use syntax::ext::base::{self, ExtCtxt, MacResult, MacExpr, DummyResult};
 use syntax::ext::build::AstBuilder;
 use rustc::plugin::Registry;
 
@@ -53,7 +53,7 @@ fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<Mac
             cx.span_err(sp, format!("unclosed escaped in `named!`: {}", c.at(0)).as_slice());
         } else {
             match unicode_names::character(c.at(1).unwrap()) {
-                Some(c) => return String::from_char(1, c),
+                Some(c) => return c.to_string(),
                 None => {
                     cx.span_err(sp, format!("`{}` does not name a character", c.at(1)).as_slice());
                 }

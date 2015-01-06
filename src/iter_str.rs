@@ -4,7 +4,7 @@ use core::{slice, fmt};
 use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_SHORT_LENGTHS, LEXICON_ORDERED_LENGTHS,
                 LEXICON_OFFSETS, LEXICON};
 
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct IterStr {
     phrasebook: slice::Iter<'static u8>,
     last_was_word: bool
@@ -21,7 +21,8 @@ impl IterStr {
 
 static HYPHEN: u8 = 127;
 
-impl Iterator<&'static str> for IterStr {
+impl Iterator for IterStr {
+    type Item = &'static str;
     fn next(&mut self) -> Option<&'static str> {
         let mut tmp = self.phrasebook;
         tmp.next().map(|&raw_b| {

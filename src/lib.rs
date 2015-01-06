@@ -1,5 +1,5 @@
 #![no_std]
-#![feature(phase, globs)]
+#![feature(phase, globs, associated_types)]
 #![deny(missing_docs, warnings, unsafe_blocks)]
 
 //! Convert between characters and their standard names.
@@ -70,7 +70,7 @@
 
 use core::prelude::*;
 use core::char;
-use core::fmt::{Show, mod};
+use core::fmt::{self, Show};
 
 use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2, MAX_NAME_LENGTH};
 use generated_phf as phf;
@@ -93,31 +93,31 @@ fn is_cjk_unified_ideograph(ch: char) -> bool {
 ///
 /// The size hint is exact for the number of pieces, but iterates
 /// (although iteration is cheap and all names are short).
-#[deriving(Clone)]
+#[derive(Clone)]
 pub struct Name {
     data: Name_
 }
-#[deriving(Clone)]
+#[derive(Clone)]
 enum Name_ {
     Plain(iter_str::IterStr),
     CJK(CJK),
     Hangul(Hangul),
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 struct CJK {
     emit_prefix: bool,
     idx: u8,
     // the longest character is 0x10FFFF
-    data: [u8, .. 6]
+    data: [u8; 6]
 }
-#[deriving(Copy)]
+#[derive(Copy)]
 struct Hangul {
     emit_prefix: bool,
     idx: u8,
     // stores the choseong, jungseong, jongseong syllable numbers (in
     // that order)
-    data: [u8, .. 3]
+    data: [u8; 3]
 }
 impl Clone for CJK { fn clone(&self) -> CJK { *self } }
 impl Clone for Hangul { fn clone(&self) -> Hangul { *self } }
@@ -133,7 +133,8 @@ impl Name {
     }
 }
 
-impl Iterator<&'static str> for Name {
+impl Iterator for Name {
+    type Item = &'static str;
     fn next(&mut self) -> Option<&'static str> {
         match self.data {
             Name_::Plain(ref mut s) => s.next(),
@@ -217,7 +218,7 @@ impl Show for Name {
 /// ```
 pub fn name(c: char) -> Option<Name> {
     let cc = c as uint;
-    let offset = PHRASEBOOK_OFFSETS1[cc >> PHRASEBOOK_OFFSET_SHIFT] as uint
+    let offset = (PHRASEBOOK_OFFSETS1[cc >> PHRASEBOOK_OFFSET_SHIFT] as uint)
         << PHRASEBOOK_OFFSET_SHIFT;
 
     let mask = (1 << PHRASEBOOK_OFFSET_SHIFT) - 1;
@@ -225,7 +226,7 @@ pub fn name(c: char) -> Option<Name> {
     if offset == 0 {
         if is_cjk_unified_ideograph(c) {
             // write the hex number out right aligned in this array.
-            let mut data = [b'0', .. 6];
+            let mut data = [b'0'; 6];
             let mut number = c as u32;
             let mut data_start = 6;
             for place in data.iter_mut().rev() {
@@ -262,7 +263,7 @@ pub fn name(c: char) -> Option<Name> {
     }
 }
 
-fn fnv_hash<I: Iterator<u8>>(mut x: I) -> u64 {
+fn fnv_hash<I: Iterator<Item=u8>>(mut x: I) -> u64 {
     let mut g = 0xcbf29ce484222325 ^ phf::NAME2CODE_N;
     for b in x { g ^= b as u64; g *= 0x100000001b3; }
     g
@@ -297,7 +298,7 @@ fn split(hash: u64) -> (u32, u32, u32) {
 pub fn character(name: &str) -> Option<char> {
     // + 1 so that we properly handle the case when `name` has a
     // prefix of the longest name, but isn't exactly equal.
-    let mut buf = [0u8, .. MAX_NAME_LENGTH + 1];
+    let mut buf = [0u8; MAX_NAME_LENGTH + 1];
     for (place, byte) in buf.iter_mut().zip(name.bytes()) {
         *place = ASCII_UPPER_MAP[byte as uint]
     }
@@ -390,7 +391,7 @@ pub fn character(name: &str) -> Option<char> {
 
 // FIXME: use the stdlib one if/when std::ascii moves into `core` (or
 // some such).
-static ASCII_UPPER_MAP: [u8, ..256] = [
+static ASCII_UPPER_MAP: [u8; 256] = [
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
     0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
     0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17,
@@ -427,16 +428,17 @@ static ASCII_UPPER_MAP: [u8, ..256] = [
 
 #[cfg(test)]
 mod tests {
-    use std::prelude::*;
+    use std::prelude::v1::*;
     use std::ascii::AsciiExt;
     use std::char;
     use std::iter::{range_inclusive};
-    use std::rand::{XorShiftRng, SeedableRng, mod};
+    use std::rand::{self, XorShiftRng, SeedableRng};
 
-    use test::{mod, Bencher};
+    use test::{self, Bencher};
     use super::{generated, name, character, is_cjk_unified_ideograph, jamo, Name};
 
-    static DATA: &'static str = include_str!("../data/codepoint_name.csv");
+    static DATA: &'static str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
+                                                     "/data/codepoint_name.csv"));
 
     #[test]
     fn exhaustive() {

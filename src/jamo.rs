@@ -167,7 +167,7 @@ pub fn slice_shift_jongseong<'a>(name: &'a [u8]) -> (Option<u32>, &'a [u8]) {
 
 #[cfg(test)]
 mod tests {
-    use std::prelude::*;
+    use std::prelude::v1::*;
 
     #[test]
     fn correct_slice_shift_choseong() {
