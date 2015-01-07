@@ -6,6 +6,6 @@ env:
 script:
   - cargo build --verbose && cargo test --verbose && cargo doc --verbose
   - "( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )"
-  - "( cd generator && rustc generator.rs -O && ./generator -s )"
+  - "( cd generator && cargo build --verbose && cargo test --verbose; )"
 after_success:
   - test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh

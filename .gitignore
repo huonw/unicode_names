@@ -2,4 +2,4 @@
 /unicode_names_macros/target
 /Cargo.lock
 /data/UnicodeData.txt
-/generator/generator
+/generator/target
