@@ -7,6 +7,8 @@ extern crate time;
 
 use std::rand::{XorShiftRng, Rng, self};
 
+use std::iter::repeat;
+
 static NOVAL: u32 = 0xFFFF_FFFF;
 
 /// FNV
@@ -43,7 +45,7 @@ fn try_phf_table(values: &[(u32, String)],
 
     // group the elements into buckets of lambda (on average, for a
     // good hash) based on the suffix of their hash.
-    let mut buckets = Vec::from_fn(buckets_len, |i| (i, vec![]));
+    let mut buckets = (0..buckets_len).map(|i| (i, vec![])).collect::<Vec<_>>();
     for &(h, cp) in hashes.iter() {
         buckets[h.g as uint % buckets_len].1.push((h, cp))
     }
@@ -55,8 +57,8 @@ fn try_phf_table(values: &[(u32, String)],
     // value for `foo` is "just" `map[displace(hash(foo))]`, where
     // `displace` uses the pair of displacements that we computed
     // (stored in `disps`).
-    let mut map = Vec::from_elem(table_len, NOVAL);
-    let mut disps = Vec::from_elem(buckets_len, (0, 0));
+    let mut map = repeat(NOVAL).take(table_len).collect::<Vec<_>>();
+    let mut disps = repeat((0, 0)).take(buckets_len).collect::<Vec<_>>();
 
     // the set of index -> value mappings for the next bucket to be
     // placed; we need it separate because it may not work, so we may
@@ -68,7 +70,7 @@ fn try_phf_table(values: &[(u32, String)],
     // having to clear the whole the whole array each time (just
     // compare against the generation). A u64 won't overflow.
     let mut generation = 0;
-    let mut try_map = Vec::from_elem(table_len, 0u64);
+    let mut try_map = repeat(0u64).take(table_len).collect::<Vec<_>>();
     // the placed (index, codepoint) pairs of the current bucket, to
     // be placed into the main map if the whole bucket fits.
     let mut values_to_add = vec![];
@@ -76,7 +78,7 @@ fn try_phf_table(values: &[(u32, String)],
     // heuristically avoiding doing everything in the same order seems
     // good? I dunno; but anyway, we get vectors of indices and
     // shuffle them.
-    let mut d1s = Vec::from_fn(table_len, |i| i as u32);
+    let mut d1s = (0..(table_len as u32)).collect::<Vec<_>>();
     let mut d2s = d1s.clone();
     let mut rng: XorShiftRng = rand::random();
     rng.shuffle(d1s.as_mut_slice());

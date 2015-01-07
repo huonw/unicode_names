@@ -17,13 +17,16 @@ impl Trie {
     }
 
     pub fn get_child(&mut self, b: u8) -> &mut Trie {
-        match self.children.entry(b) {
+        // this shouldn't be necessary, but the .entry API is broken
+        // at the moment.
+        let b_ref = unsafe {&*(&b as *const _)};
+        match self.children.entry(b_ref) {
             Entry::Occupied(o) => o.into_mut(),
-            Entry::Vacant(v) => v.set(Trie::new())
+            Entry::Vacant(v) => v.insert(Trie::new())
         }
     }
 
-    pub fn set_offset<I: Iterator<u8>>(&mut self, mut it: I, offset: uint) {
+    pub fn set_offset<I: Iterator<Item = u8>>(&mut self, mut it: I, offset: uint) {
         if self.offset.is_none() {
             self.offset = Some(offset)
         }
@@ -35,8 +38,8 @@ impl Trie {
     /// insert the value given by the sequence `it`, returning a tuple
     /// (is this a substring already in the tree, was this exact
     /// sequence previously inserted).
-    pub fn insert<I: Iterator<u8>>(&mut self, mut it: I, offset: Option<uint>,
-                                   weak: bool) -> (bool, bool) {
+    pub fn insert<I: Iterator<Item = u8>>(&mut self, mut it: I, offset: Option<uint>,
+                                          weak: bool) -> (bool, bool) {
         let ret = match it.next() {
             None => {
                 let old_count = self.count;
@@ -62,10 +65,11 @@ impl Trie {
 pub struct Items<'a> {
     parents: Vec<u8>,
     current: Option<&'a Trie>,
-    stack: Vec<hash_map::Entries<'a, u8, Trie>>
+    stack: Vec<hash_map::Iter<'a, u8, Trie>>
 }
 
-impl<'a> Iterator<(uint, Vec<u8>, Option<uint>)> for Items<'a> {
+impl<'a> Iterator for Items<'a> {
+    type Item = (uint, Vec<u8>, Option<uint>);
     fn next(&mut self) -> Option<(uint, Vec<u8>, Option<uint>)> {
         'outer: loop {
             match self.current {

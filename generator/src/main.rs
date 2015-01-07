@@ -1,4 +1,4 @@
-#![feature(macro_rules, phase)]
+#![feature(macro_rules, phase, slicing_syntax, associated_types)]
 
 #[phase(plugin, link)] extern crate log;
 extern crate getopts;
@@ -6,6 +6,7 @@ extern crate getopts;
 use std::{cmp, vec};
 use std::collections::{HashMap, hash_map};
 use std::io::{File, BufferedReader, BufferedWriter, self};
+use std::iter::repeat;
 
 use formatting::Context;
 
@@ -162,7 +163,7 @@ fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, uint) {
                     // no :(, better put it in.
                     let index = t2.len();
                     t2.push_all(chunk);
-                    v.set(index)
+                    v.insert(index)
                 }
             };
             t1.push((index >> shift) as u32)
@@ -259,7 +260,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // this is a map from `char` -> the index in phrasebook. it is
     // currently huge, but it has a lot of 0's, so we compress it
     // using the binning, below.
-    let mut phrasebook_offsets = Vec::from_elem(0x10FFFF + 1, 0);
+    let mut phrasebook_offsets = repeat(0).take(0x10FFFF + 1).collect::<Vec<_>>();
     let mut longest_name = 0;
     for &(cp, ref name) in codepoint_names.iter() {
         longest_name = cmp::max(name.len(), longest_name);
