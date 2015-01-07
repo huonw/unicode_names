@@ -5,7 +5,7 @@ extern crate getopts;
 
 use std::{cmp, vec};
 use std::collections::{HashMap, hash_map};
-use std::io::{File, BufferedReader, BufferedWriter, mod};
+use std::io::{File, BufferedReader, BufferedWriter, self};
 
 use formatting::Context;
 

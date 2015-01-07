@@ -5,7 +5,7 @@
 
 extern crate time;
 
-use std::rand::{XorShiftRng, Rng, mod};
+use std::rand::{XorShiftRng, Rng, self};
 
 static NOVAL: u32 = 0xFFFF_FFFF;
 
@@ -29,7 +29,7 @@ fn split(hash: u64) -> Hash {
     }
 }
 
-#[deriving(Copy)]
+#[derive(Copy)]
 struct Hash { g: u32, f1: u32, f2: u32 }
 
 fn try_phf_table(values: &[(u32, String)],

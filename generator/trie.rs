@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::collections::hash_map::{mod, Entry};
+use std::collections::hash_map::{self, Entry};
 
 pub struct Trie {
     children: HashMap<u8, Trie>,
