@@ -1,7 +1,4 @@
 #![no_std]
-#![feature(phase, globs, associated_types)]
-#![deny(missing_docs, warnings, unsafe_blocks)]
-
 //! Convert between characters and their standard names.
 //!
 //! This crate provides two functions for mapping from a `char` to the
@@ -15,8 +12,8 @@
 //! extern crate unicode_names;
 //!
 //! fn main() {
-//!     println!("☃ is called {}", unicode_names::name('☃')); // SNOWMAN
-//!     println!("{} is happy", unicode_names::character("white smiling face")); // ☺
+//!     println!("☃ is called {:?}", unicode_names::name('☃')); // SNOWMAN
+//!     println!("{:?} is happy", unicode_names::character("white smiling face")); // ☺
 //!     // (NB. case insensitivity)
 //! }
 //! ```
@@ -37,9 +34,9 @@
 //!   string) is required.
 //!
 //! ```rust
-//! #![feature(phase)]
+//! #![feature(plugin)]
 //!
-//! #[phase(plugin)] extern crate unicode_names_macros;
+//! #[plugin] #[no_link] extern crate unicode_names_macros;
 //!
 //! fn main() {
 //!     let x: char = named_char!("snowman");
@@ -62,15 +59,17 @@
 //! git = "https://github.com/huonw/unicode_names"
 //! ```
 
+#![deny(missing_docs, unsafe_blocks)]
+#![allow(unstable)]
 
-#[phase(link, plugin)] extern crate core;
+#[macro_use] extern crate core;
 
-#[cfg(test)] #[phase(link, plugin)] extern crate std;
+#[cfg(test)] #[macro_use] extern crate std;
 #[cfg(test)] extern crate test;
 
 use core::prelude::*;
 use core::char;
-use core::fmt::{self, Show};
+use core::fmt;
 
 use generated::{PHRASEBOOK_OFFSET_SHIFT, PHRASEBOOK_OFFSETS1, PHRASEBOOK_OFFSETS2, MAX_NAME_LENGTH};
 use generated_phf as phf;
@@ -127,7 +126,7 @@ impl Name {
     ///
     /// All names are plain ASCII, so this is also the number of
     /// Unicode codepoints and the number of graphemes.
-    pub fn len(&self) -> uint {
+    pub fn len(&self) -> usize {
         let counted = self.clone();
         counted.fold(0, |a, s| a + s.len())
     }
@@ -147,13 +146,13 @@ impl Iterator for Name {
                 // run until we've run out of array: the construction
                 // of the data means this is exactly when we have
                 // finished emitting the number.
-                state.data.get(state.idx as uint)
+                state.data.get(state.idx as usize)
                     // (avoid conflicting mutable borrow problems)
-                    .map(|digit| *digit as uint)
+                    .map(|digit| *digit as usize)
                     .map(|d| {
                         state.idx += 1;
                         static DIGITS: &'static str = "0123456789ABCDEF";
-                        DIGITS.slice(d, d + 1)
+                        &DIGITS[d..d + 1]
                     })
             }
             Name_::Hangul(ref mut state) => {
@@ -162,9 +161,9 @@ impl Iterator for Name {
                     return Some(HANGUL_SYLLABLE_PREFIX)
                 }
 
-                let idx = state.idx as uint;
+                let idx = state.idx as usize;
                 state.data.get(idx)
-                    .map(|x| *x as uint)
+                    .map(|x| *x as usize)
                     .map(|x| {
                         // progressively walk through the syllables
                         state.idx += 1;
@@ -176,7 +175,7 @@ impl Iterator for Name {
         }
     }
 
-    fn size_hint(&self) -> (uint, Option<uint>) {
+    fn size_hint(&self) -> (usize, Option<usize>) {
         // we can estimate exactly by just iterating and summing up.
         let counted = self.clone();
         let n = counted.count();
@@ -184,7 +183,12 @@ impl Iterator for Name {
     }
 }
 
-impl Show for Name {
+impl fmt::Debug for Name {
+    fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(self, fmtr)
+    }
+}
+impl fmt::Display for Name {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
         let mut printed = self.clone();
         for s in printed {
@@ -204,6 +208,7 @@ impl Show for Name {
 /// # Example
 ///
 /// ```rust
+/// # #![allow(unstable)]
 /// assert_eq!(unicode_names::name('a').map(|n| n.to_string()),
 ///            Some("LATIN SMALL LETTER A".to_string()));
 /// assert_eq!(unicode_names::name('\u{2605}').map(|n| n.to_string()),
@@ -217,12 +222,12 @@ impl Show for Name {
 /// assert!(unicode_names::name('\u{10FFFF}').is_none());
 /// ```
 pub fn name(c: char) -> Option<Name> {
-    let cc = c as uint;
-    let offset = (PHRASEBOOK_OFFSETS1[cc >> PHRASEBOOK_OFFSET_SHIFT] as uint)
+    let cc = c as usize;
+    let offset = (PHRASEBOOK_OFFSETS1[cc >> PHRASEBOOK_OFFSET_SHIFT] as usize)
         << PHRASEBOOK_OFFSET_SHIFT;
 
     let mask = (1 << PHRASEBOOK_OFFSET_SHIFT) - 1;
-    let offset = PHRASEBOOK_OFFSETS2[offset + (cc & mask) as uint];
+    let offset = PHRASEBOOK_OFFSETS2[offset + (cc & mask) as usize];
     if offset == 0 {
         if is_cjk_unified_ideograph(c) {
             // write the hex number out right aligned in this array.
@@ -258,7 +263,7 @@ pub fn name(c: char) -> Option<Name> {
         }
     } else {
         Some(Name {
-            data:  Name_::Plain(iter_str::IterStr::new(offset as uint))
+            data:  Name_::Plain(iter_str::IterStr::new(offset as usize))
         })
     }
 }
@@ -300,13 +305,13 @@ pub fn character(name: &str) -> Option<char> {
     // prefix of the longest name, but isn't exactly equal.
     let mut buf = [0u8; MAX_NAME_LENGTH + 1];
     for (place, byte) in buf.iter_mut().zip(name.bytes()) {
-        *place = ASCII_UPPER_MAP[byte as uint]
+        *place = ASCII_UPPER_MAP[byte as usize]
     }
-    let search_name = buf.slice_to(name.len());
+    let search_name = &buf[..name.len()];
 
     // try `HANGUL SYLLABLE <choseong><jungseong><jongseong>`
     if search_name.starts_with(HANGUL_SYLLABLE_PREFIX.as_bytes()) {
-        let remaining = search_name.slice_from(HANGUL_SYLLABLE_PREFIX.len());
+        let remaining = &search_name[HANGUL_SYLLABLE_PREFIX.len()..];
         let (choseong, remaining) = jamo::slice_shift_choseong(remaining);
         let (jungseong, remaining) = jamo::slice_shift_jungseong(remaining);
         let (jongseong, remaining) = jamo::slice_shift_jongseong(remaining);
@@ -325,7 +330,7 @@ pub fn character(name: &str) -> Option<char> {
 
     // try `CJK UNIFIED IDEOGRAPH-<digits>`
     if search_name.starts_with(CJK_UNIFIED_IDEOGRAPH_PREFIX.as_bytes()) {
-        let remaining = search_name.slice_from(CJK_UNIFIED_IDEOGRAPH_PREFIX.len());
+        let remaining = &search_name[CJK_UNIFIED_IDEOGRAPH_PREFIX.len()..];
         if remaining.len() > 5 { return None; } // avoid overflow
 
         let mut v = 0u32;
@@ -354,10 +359,10 @@ pub fn character(name: &str) -> Option<char> {
     // get the parts of the hash...
     let (g, f1, f2) = split(fnv_hash(search_name.iter().map(|x| *x)));
     // ...and the appropriate displacements...
-    let (d1, d2) = phf::NAME2CODE_DISP[g as uint % phf::NAME2CODE_DISP.len()];
+    let (d1, d2) = phf::NAME2CODE_DISP[g as usize % phf::NAME2CODE_DISP.len()];
 
     // ...to find the right index...
-    let idx = displace(f1, f2, d1 as u32, d2 as u32) as uint;
+    let idx = displace(f1, f2, d1 as u32, d2 as u32) as usize;
     // ...for looking up the codepoint.
     let codepoint = phf::NAME2CODE_CODE[idx % phf::NAME2CODE_CODE.len()];
 
@@ -380,10 +385,10 @@ pub fn character(name: &str) -> Option<char> {
     for part in maybe_name {
         let part = part.as_bytes();
         let part_l = part.len();
-        if passed_name.len() < part_l || passed_name.slice_to(part_l) != part {
+        if passed_name.len() < part_l || &passed_name[..part_l] != part {
             return None
         }
-        passed_name = passed_name.slice_from(part_l)
+        passed_name = &passed_name[part_l..]
     }
 
     Some(codepoint)
@@ -450,7 +455,7 @@ mod tests {
                     let n = name(c);
                     assert!(n.is_none(),
                             "{} ({}) shouldn't have a name but is called {}",
-                            c, c as u32, n);
+                            c, c as u32, n.unwrap());
                 }
             }
         }
@@ -650,7 +655,7 @@ mod tests {
 
         b.iter(|| {
             for n in names.iter() {
-                test::black_box(character(n.as_slice()))
+                test::black_box(character(n.as_slice()));
             }
         })
     }
@@ -658,5 +663,5 @@ mod tests {
 
 #[cfg(not(test))]
 mod std {
-    pub use core::{clone, fmt, kinds};
+    pub use core::{clone, fmt, marker};
 }

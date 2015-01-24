@@ -3,7 +3,7 @@
     ('\u{3400}', '\u{4db5}'), ('\u{4e00}', '\u{9fcc}'), ('\u{20000}', '\u{2a6d6}'),
     ('\u{2a700}', '\u{2b734}'), ('\u{2b740}', '\u{2b81d}'),];
 
-pub const MAX_NAME_LENGTH: uint = 83;
+pub const MAX_NAME_LENGTH: usize = 83;
 #[inline(never)] pub static LEXICON: &'static str = "\
     ARABICLIGATUREUIGHURKIRGHIZYEHWITHHAMZAABOVEALEFMAKSURAISOLATEDFORMINITIALFINALCLOCKWISER\
     IGHTWARDSANDLEFTWARDSOPENCIRCLEARROWSCIRCLEDONEOVERLAYLETTERBEHTHREEDOTSPOINTINGUPWARDSBE\
@@ -1293,7 +1293,7 @@ pub const MAX_NAME_LENGTH: uint = 83;
     6, 4, 4, 5, 8, 7, 5, 6, 2, 3, 6, 9, 12, 10, 8, 9, 13, 4, 1, 5, 9, 8, 5, 5, 4, 5, 5, 6, 3,
     6, 5, 5, 8, 7, 8, 3, 1, 8, 6, 5, 5, 9, 4, 5, 4, 7, 6, 7, 4, 1, 6, 3, 1, 5, 1, 6, 3, 3, 4,
     5, 1, 5, 3, 3, 9, 8, 7, 7, 3, 5, 9, 8, 8, 5, 6, 8, 7, 5, 8, 6, 5, 7, 1, 2, 7,];
-#[inline(never)] pub static LEXICON_ORDERED_LENGTHS: &'static [(uint, u8)] = &[
+#[inline(never)] pub static LEXICON_ORDERED_LENGTHS: &'static [(usize, u8)] = &[
     (86, 0), (114, 1), (560, 2), (2248, 3), (5982, 4), (8053, 5), (8837, 6), (9485, 7),
     (9961, 8), (10278, 9), (10482, 10), (10603, 11), (10662, 12), (10699, 13), (10712, 14),
     (10723, 15), (10727, 16), (10728, 17), (10732, 18), (10733, 19), (10734, 20), (10735, 21),];
@@ -9576,7 +9576,7 @@ pub static PHRASEBOOK_SHORT: u8 = 85;
     64, 65, 127, 217, 226, 64, 65, 127, 217, 225, 64, 65, 127, 217, 224, 64, 65, 127, 221, 81,
     64, 65, 127, 221, 80, 64, 65, 127, 221, 79, 64, 65, 127, 221, 78, 64, 65, 127, 221, 77,
     64, 65, 127, 221, 76, 64, 65, 127, 221, 75, 64, 65, 127, 217, 223,];
-pub static PHRASEBOOK_OFFSET_SHIFT: uint = 7;
+pub static PHRASEBOOK_OFFSET_SHIFT: usize = 7;
 #[inline(never)] pub static PHRASEBOOK_OFFSETS1: &'static [u8] = &[
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
     25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46,

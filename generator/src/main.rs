@@ -1,9 +1,7 @@
-#![feature(macro_rules, phase, slicing_syntax, associated_types)]
-
-#[phase(plugin, link)] extern crate log;
+#[macro_use] extern crate log;
 extern crate getopts;
 
-use std::{cmp, vec};
+use std::{cmp, char};
 use std::collections::{HashMap, hash_map};
 use std::io::{File, BufferedReader, BufferedWriter, self};
 use std::iter::repeat;
@@ -27,13 +25,20 @@ static IN_FILE: &'static str = "../data/codepoint_name.csv";
 
 static SPLITTERS: &'static [u8] = b"-";
 
-fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
-    fn extract(line: &str) -> (u32, &str) {
-        let mut splits = line.split(';');
-        let cp = splits.next().and_then(StrExt::parse)
-            .unwrap_or_else(|| panic!("invalid {}", line));
-        let name = splits.next().unwrap_or_else(|| panic!("missing name {}", line));
-        (cp, name)
+fn get_table_data() -> (Vec<(char, String)>, Vec<(char, char)>) {
+    macro_rules! extract {
+        ($line: expr) => {{
+            let line = $line;
+            let mut splits = line.split(';');
+            let cp = splits.next().and_then(StrExt::parse)
+                .unwrap_or_else(|| panic!("invalid {}", line));
+            let c = match char::from_u32(cp) {
+                None => continue,
+                Some(c) => c,
+            };
+            let name = splits.next().unwrap_or_else(|| panic!("missing name {}", line));
+            (c, name)
+        }}
     }
 
     let mut r = BufferedReader::new(File::open(&Path::new(IN_FILE)));
@@ -48,17 +53,17 @@ fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
             None => break
         };
 
-        let (cp, name) = extract(l.as_slice().trim());
+        let (cp, name) = extract!(l.trim());
         if name.starts_with("<") {
             assert!(name.ends_with(">"), "should >: {}", name);
-            let name = name.slice(1, name.len() - 1);
+            let name = &name[1..name.len() - 1];
             if name.starts_with("CJK Ideograph") {
                 assert!(name.ends_with("First"));
                 // should be CJK Ideograph ..., Last
                 let line2 = iter.next().expect("unclosed ideograph range");
-                let (cp2, name2) = extract(line2.as_slice().trim());
-                assert_eq!(name.replace("First", "Last").as_slice(),
-                           name2.slice(1, name2.len() - 1));
+                let (cp2, name2) = extract!(line2.trim());
+                assert_eq!(&*name.replace("First", "Last"),
+                           &name2[1..name2.len() - 1]);
 
                 cjk_ideograph_ranges.push((cp, cp2));
             } else if name.starts_with("Hangul Syllable") {
@@ -66,9 +71,9 @@ fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
                 // sure we're not going out of date wrt the unicode
                 // standard.
                 if name.ends_with("First") {
-                    assert_eq!(cp, 0xAC00);
+                    assert_eq!(cp, '\u{AC00}');
                 } else if name.ends_with("Last") {
-                    assert_eq!(cp, 0xD7A3);
+                    assert_eq!(cp, '\u{D7A3}');
                 } else {
                     panic!("unknown hangul syllable {}", name)
                 }
@@ -80,28 +85,27 @@ fn get_table_data() -> (Vec<(u32, String)>, Vec<(u32, u32)>) {
     (codepoint_names, cjk_ideograph_ranges)
 }
 
-fn write_cjk_ideograph_ranges(ctxt: &mut Context, ranges: &[(u32, u32)]) {
-    ctxt.write_array("CJK_IDEOGRAPH_RANGES", "(char, char)", ranges,
-                     |&(a, b)| format!("({}, {})", formatting::chr(a), formatting::chr(b)))
+fn write_cjk_ideograph_ranges(ctxt: &mut Context, ranges: &[(char, char)]) {
+    ctxt.write_debugs("CJK_IDEOGRAPH_RANGES", "(char, char)", ranges)
 }
 
 /// Construct a huge string storing the text data, and return it,
 /// along with information about the position and frequency of the
 /// constituent words of the input.
-fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (String,
-                                                                           Vec<(uint, Vec<u8>,
-                                                                                uint)>) {
+fn create_lexicon_and_offsets(mut codepoint_names: Vec<(char, String)>) -> (String,
+                                                                            Vec<(usize, Vec<u8>,
+                                                                                 usize)>) {
     codepoint_names.sort_by(|a, b| a.1.len().cmp(&b.1.len()).reverse());
 
     // a trie of all the suffixes of the data,
     let mut t = trie::Trie::new();
     let mut output = String::new();
 
-    let mut substring_overlaps = 0u;
-    let mut substring_o_bytes = 0u;
+    let mut substring_overlaps = 0;
+    let mut substring_o_bytes = 0;
 
     for &(_, ref name) in codepoint_names.iter() {
-        for n in util::split(name.as_slice(), SPLITTERS) {
+        for n in util::split(&**name, SPLITTERS) {
             if n.len() == 1 && SPLITTERS.contains(&n.as_bytes()[0]) {
                 continue
             }
@@ -123,8 +127,8 @@ fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (Strin
                 // 10KB (we could theoretically insert all substrings,
                 // upto a certain length, but this only saves ~300
                 // bytes or so and is noticably slower).
-                for i in range(1, n.len()) {
-                    if t.insert(n.slice_from(i).bytes(), Some(offset + i), true).0 {
+                for i in 1..n.len() {
+                    if t.insert(n[i..].bytes(), Some(offset + i), true).0 {
                         // once we've found a string that's already
                         // been inserted, we know all suffixes will've
                         // been inserted too.
@@ -144,25 +148,25 @@ fn create_lexicon_and_offsets(mut codepoint_names: Vec<(u32, String)>) -> (Strin
 // shift] << shift + i & mask]`; this allows us to share blocks of
 // length `1 << shift`, and so compress an array with a lot of repeats
 // (like the 0's of the phrasebook_offsets below).
-fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, uint) {
+fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, usize) {
     let mut smallest = 0xFFFFFFFF;
     let mut data = (vec![], vec![], 0);
     let mut cache = HashMap::new();
 
     // brute force search for the shift that words best.
-    for shift in range(0, 14) {
+    for shift in 0us..14 {
         cache.clear();
 
         let mut t1 = vec![];
         let mut t2 = vec![];
         for chunk in dat.chunks(1 << shift) {
             // have we stored this chunk already?
-            let &index = match cache.entry(chunk) {
+            let index = *match cache.entry(chunk) {
                 hash_map::Entry::Occupied(o) => o.into_mut(),
                 hash_map::Entry::Vacant(v) => {
                     // no :(, better put it in.
                     let index = t2.len();
-                    t2.push_all(chunk);
+                    t2.extend(chunk.iter().cloned());
                     v.insert(index)
                 }
             };
@@ -183,14 +187,14 @@ fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, uint) {
         let (ref t1, ref t2, shift) = data;
         let mask = (1 << shift) - 1;
         for (i, &elem) in dat.iter().enumerate() {
-            assert_eq!(elem, t2[((t1[i >> shift] << shift) + (i as u32 & mask)) as uint])
+            assert_eq!(elem, t2[((t1[i >> shift] << shift) + (i as u32 & mask)) as usize])
         }
     }
 
     data
 }
 
-fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>) {
+fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(char, String)>) {
     let (lexicon_string, mut lexicon_words) = create_lexicon_and_offsets(codepoint_names.clone());
 
     let num_escapes = (lexicon_words.len() + 255) / 256;
@@ -207,8 +211,7 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     // and then sort the rest into groups of equal length, to allow us
     // to avoid storing the full length table; just the indices. The
     // ordering is irrelevant here; just that they are in groups.
-    lexicon_words.slice_from_mut(short)
-        .sort_by(|&(_, ref a, _), &(_, ref b, _)| a.len().cmp(&b.len()));
+    lexicon_words[short..].sort_by(|&(_, ref a, _), &(_, ref b, _)| a.len().cmp(&b.len()));
 
     // the encoding for each word, to avoid having to recompute it
     // each time, we can just blit it out of here.
@@ -266,16 +269,16 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
         longest_name = cmp::max(name.len(), longest_name);
 
         let start = phrasebook.len() as u32;
-        phrasebook_offsets[cp as uint] = start;
+        phrasebook_offsets[cp as usize] = start;
 
         let mut last_len = 0;
-        for w in util::split(name.as_slice(), SPLITTERS) {
-            let data = word_encodings.get(&*vec::as_vec(w.as_bytes())).unwrap();
+        for w in util::split(&**name, SPLITTERS) {
+            let data = word_encodings.get(w.as_bytes()).expect(concat!("option on ", line!()));
             last_len = data.len();
             // info!("{}: '{}' {}", name, w, data);
 
             // blit the data.
-            phrasebook.push_all(data.as_slice())
+            phrasebook.extend(data.iter().cloned())
         }
 
         // add the high bit to the first byte of the last encoded
@@ -285,20 +288,25 @@ fn write_codepoint_maps(ctxt: &mut Context, codepoint_names: Vec<(u32, String)>)
     }
 
     // compress the offsets, hopefully collapsing all the 0's.
-    let (t1, t2, shift) = bin_data(phrasebook_offsets.as_slice());
+    let (t1, t2, shift) = bin_data(&*phrasebook_offsets);
 
-    w!(ctxt, "pub const MAX_NAME_LENGTH: uint = {};\n", longest_name);
-    ctxt.write_plain_string("LEXICON", lexicon_string.as_slice());
-    ctxt.write_shows("LEXICON_OFFSETS", "u16", lexicon_offsets.as_slice());
-    ctxt.write_shows("LEXICON_SHORT_LENGTHS", "u8", lexicon_short_lengths.as_slice());
-    ctxt.write_shows("LEXICON_ORDERED_LENGTHS", "(uint, u8)", lexicon_ordered_lengths.as_slice());
+    w!(ctxt, "pub const MAX_NAME_LENGTH: usize = {};\n", longest_name);
+    ctxt.write_plain_string("LEXICON", &*lexicon_string);
+    ctxt.write_debugs("LEXICON_OFFSETS", "u16", &*lexicon_offsets);
+    ctxt.write_debugs("LEXICON_SHORT_LENGTHS", "u8",
+                        &*lexicon_short_lengths);
+    ctxt.write_debugs("LEXICON_ORDERED_LENGTHS", "(usize, u8)",
+                     &*lexicon_ordered_lengths);
     w!(ctxt, "pub static PHRASEBOOK_SHORT: u8 = {};\n", short);
-    ctxt.write_shows("PHRASEBOOK", "u8", phrasebook.as_slice());
-    w!(ctxt, "pub static PHRASEBOOK_OFFSET_SHIFT: uint = {};\n", shift);
-    ctxt.write_shows("PHRASEBOOK_OFFSETS1", util::smallest_u(t1.iter().map(|x| *x)).as_slice(),
-                     t1.as_slice());
-    ctxt.write_shows("PHRASEBOOK_OFFSETS2", util::smallest_u(t2.iter().map(|x| *x)).as_slice(),
-                     t2.as_slice());
+    ctxt.write_debugs("PHRASEBOOK", "u8",
+                        &*phrasebook);
+    w!(ctxt, "pub static PHRASEBOOK_OFFSET_SHIFT: usize = {};\n", shift);
+    ctxt.write_debugs("PHRASEBOOK_OFFSETS1",
+                        &*util::smallest_u(t1.iter().map(|x| *x)),
+                        &*t1);
+    ctxt.write_debugs("PHRASEBOOK_OFFSETS2",
+                        &*util::smallest_u(t2.iter().map(|x| *x)),
+                        &*t2);
 }
 
 fn main() {
@@ -310,7 +318,7 @@ fn main() {
         getopts::optopt("", "truncate", "only handle the first N", "N"),
         getopts::optflag("h", "help", "print this message"),
         ];
-    let matches = match getopts::getopts(std::os::args().tail(), &opts) {
+    let matches = match getopts::getopts(&std::os::args()[1..], &opts) {
         Ok(m) => m, Err(f) => panic!(f.to_string()),
     };
 
@@ -329,9 +337,9 @@ fn main() {
 
     let mut ctxt = Context {
         out: match file {
-            Some(ref p) => box BufferedWriter::new(File::create(&p.with_extension("tmp")))
+            Some(ref p) => Box::new(BufferedWriter::new(File::create(&p.with_extension("tmp"))))
                 as Box<Writer>,
-            None => box io::util::NullWriter as Box<Writer>
+            None => Box::new(io::util::NullWriter) as Box<Writer>
         }
     };
     ctxt.out.write_str("// autogenerated by generator.rs\n").unwrap();
@@ -340,27 +348,29 @@ fn main() {
     let tries = matches.opt_str("phf-tries");
 
     let (mut codepoint_names, cjk) = get_table_data();
-    match matches.opt_str("truncate").map(|s| s.parse()).unwrap() {
+    match matches.opt_str("truncate").map(|s| s.parse().expect("truncate should be an integer")) {
         Some(n) => codepoint_names.truncate(n),
         None => {}
     }
 
     if do_phf {
         let (n, disps, data) =
-            phf::create_phf(codepoint_names.as_slice(),
-                            lambda.map(|s| s.parse()).unwrap().unwrap_or(3),
-                            tries.map(|s| s.parse()).unwrap().unwrap_or(2));
+            phf::create_phf(&*codepoint_names,
+                            lambda.map(|s| s.parse().expect("invalid -l")).unwrap_or(3),
+                            tries.map(|s| s.parse().expect("invalid -t")).unwrap_or(2));
 
 
         w!(ctxt, "pub static NAME2CODE_N: u64 = {};\n", n);
-        ctxt.write_shows("NAME2CODE_DISP", "(u16, u16)", disps.as_slice());
+        ctxt.write_debugs("NAME2CODE_DISP",
+                         "(u16, u16)",
+                         &*disps);
 
-        ctxt.write_array("NAME2CODE_CODE", "char", data.as_slice(), |x| formatting::chr(*x));
+        ctxt.write_debugs("NAME2CODE_CODE", "char", &*data);
     } else {
         if lambda.is_some() { println!("-l/--phf-lambda only applies with --phf") }
         if tries.is_some() { println!("-t/--phf-tries only applies with --phf") }
 
-        write_cjk_ideograph_ranges(&mut ctxt, cjk.as_slice());
+        write_cjk_ideograph_ranges(&mut ctxt, &*cjk);
         ctxt.out.write_str("\n").unwrap();
         write_codepoint_maps(&mut ctxt, codepoint_names);
     }

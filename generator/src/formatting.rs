@@ -1,16 +1,18 @@
-use std::char;
-use std::fmt::Show;
+use std::fmt::Debug;
 
-static LINE_LIMIT: uint = 95;
+static LINE_LIMIT: usize = 95;
 
 pub struct Context {
     pub out: Box<Writer+'static>
 }
 
-pub fn chr(c: u32) -> String { char::from_u32(c).unwrap().escape_unicode().collect() }
+pub fn char_tup(t: &(u32, u32)) -> String {
+    format!("({:?}, {:?})", t.0, t.1)
+}
 
 impl Context {
-    pub fn write_array<T>(&mut self, name: &str, ty: &str, elements: &[T], format: |&T| -> String) {
+    pub fn write_array<T, F>(&mut self, name: &str, ty: &str, elements: &[T], format: F)
+            where F: Fn(&T) -> String{
         w!(self, "#[inline(never)] pub static {}: &'static [{}] = &[", name, ty);
 
         let mut width = LINE_LIMIT;
@@ -30,8 +32,8 @@ impl Context {
         w!(self, "];\n");
     }
 
-    pub fn write_shows<T: Show>(&mut self, name: &str, ty: &str, elements: &[T]) {
-        self.write_array(name, ty, elements, |x| x.to_string())
+    pub fn write_debugs<T: Debug>(&mut self, name: &str, ty: &str, elements: &[T]) {
+        self.write_array(name, ty, elements, |x| format!("{:?}", x))
     }
 
     pub fn write_plain_string(&mut self, name: &str, data: &str) {

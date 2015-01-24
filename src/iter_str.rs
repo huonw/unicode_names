@@ -11,9 +11,9 @@ pub struct IterStr {
 }
 
 impl IterStr {
-    pub fn new(start_index: uint) -> IterStr {
+    pub fn new(start_index: usize) -> IterStr {
         IterStr {
-            phrasebook: PHRASEBOOK.slice_from(start_index).iter(),
+            phrasebook: PHRASEBOOK[start_index..].iter(),
             last_was_word: false
         }
     }
@@ -47,22 +47,22 @@ impl Iterator for IterStr {
 
                 let idx;
                 let length = if b < PHRASEBOOK_SHORT {
-                    idx = b as uint;
+                    idx = b as usize;
                     // these lengths are hard-coded
-                    LEXICON_SHORT_LENGTHS[idx] as uint
+                    LEXICON_SHORT_LENGTHS[idx] as usize
                 } else {
-                    idx = (b - PHRASEBOOK_SHORT) as uint * 256 +
-                        (*tmp.next().unwrap()) as uint;
+                    idx = (b - PHRASEBOOK_SHORT) as usize * 256 +
+                        (*tmp.next().unwrap()) as usize;
 
                     // search for the right place: the first one where
                     // the end-point is after our current index.
                     match LEXICON_ORDERED_LENGTHS.iter().find(|&&(end, _)| idx < end) {
-                        Some(&(_, len)) => len as uint,
+                        Some(&(_, len)) => len as usize,
                         None => unreachable!()
                     }
                 };
-                let offset = LEXICON_OFFSETS[idx] as uint;
-                LEXICON.slice(offset, offset + length)
+                let offset = LEXICON_OFFSETS[idx] as usize;
+                &LEXICON[offset..offset + length]
             };
             self.phrasebook = if is_end {
                 (&[]).iter()
@@ -74,7 +74,7 @@ impl Iterator for IterStr {
     }
 }
 
-impl fmt::Show for IterStr {
+impl fmt::Debug for IterStr {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
         let mut printed = self.clone();
         for s in printed {

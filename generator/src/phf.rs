@@ -9,7 +9,7 @@ use std::rand::{XorShiftRng, Rng, self};
 
 use std::iter::repeat;
 
-static NOVAL: u32 = 0xFFFF_FFFF;
+static NOVAL: char = '\0';
 
 /// FNV
 fn hash(s: &str, h: u64) -> u64 {
@@ -34,11 +34,11 @@ fn split(hash: u64) -> Hash {
 #[derive(Copy)]
 struct Hash { g: u32, f1: u32, f2: u32 }
 
-fn try_phf_table(values: &[(u32, String)],
-                 lambda: uint, seed: u64) -> Option<(Vec<(u32, u32)>, Vec<u32>)> {
+fn try_phf_table(values: &[(char, String)],
+                 lambda: usize, seed: u64) -> Option<(Vec<(u32, u32)>, Vec<char>)> {
 
-    let hashes: Vec<(Hash, u32)> =
-        values.iter().map(|&(n, ref s)| (split(hash(s.as_slice(), seed)), n)).collect();
+    let hashes: Vec<_> =
+        values.iter().map(|&(n, ref s)| (split(hash(&**s, seed)), n)).collect();
 
     let table_len = hashes.len();
     let buckets_len = (table_len + lambda - 1) / lambda;
@@ -47,7 +47,7 @@ fn try_phf_table(values: &[(u32, String)],
     // good hash) based on the suffix of their hash.
     let mut buckets = (0..buckets_len).map(|i| (i, vec![])).collect::<Vec<_>>();
     for &(h, cp) in hashes.iter() {
-        buckets[h.g as uint % buckets_len].1.push((h, cp))
+        buckets[h.g as usize % buckets_len].1.push((h, cp))
     }
 
     // place the large buckets first.
@@ -81,8 +81,8 @@ fn try_phf_table(values: &[(u32, String)],
     let mut d1s = (0..(table_len as u32)).collect::<Vec<_>>();
     let mut d2s = d1s.clone();
     let mut rng: XorShiftRng = rand::random();
-    rng.shuffle(d1s.as_mut_slice());
-    rng.shuffle(d2s.as_mut_slice());
+    rng.shuffle(&mut *d1s);
+    rng.shuffle(&mut *d2s);
 
     // run through each bucket and try to fit the elements into the
     // array by choosing appropriate adjusting factors
@@ -100,7 +100,7 @@ fn try_phf_table(values: &[(u32, String)],
                     // adjust the index slightly using the
                     // displacements, hoping that this will allow us
                     // to avoid collisions.
-                    let idx = (displace(h.f1, h.f2, d1, d2) % table_len as u32) as uint;
+                    let idx = (displace(h.f1, h.f2, d1, d2) % table_len as u32) as usize;
 
                     if map[idx] != NOVAL || try_map[idx] == generation {
                         // nope, this one is taken, so this pair of
@@ -130,11 +130,11 @@ fn try_phf_table(values: &[(u32, String)],
     return Some((disps, map))
 }
 
-pub fn create_phf(data: &[(u32, String)], lambda: uint,
-                  max_tries: uint) -> (u64, Vec<(u32, u32)>, Vec<u32>) {
+pub fn create_phf(data: &[(char, String)], lambda: usize,
+                  max_tries: usize) -> (u64, Vec<(u32, u32)>, Vec<char>) {
     let start = time::precise_time_s();
 
-    for i in range(0, max_tries){
+    for i in 0..(max_tries) {
         let my_start = time::precise_time_s();
         println!("PHF #{}: starting {:.2}", i, my_start - start);
 

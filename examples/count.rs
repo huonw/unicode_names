@@ -12,7 +12,7 @@ use std::char;
 // checking it exists, which is why it can be so efficient.
 
 fn main() {
-    let number = range(0u32, 0x10FFFF)
+    let number = (0u32..0x10FFFF)
         .filter(|x| {
             char::from_u32(*x).map_or(false, |c| unicode_names::name(c).is_some())
         })

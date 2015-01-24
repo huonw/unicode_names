@@ -2,13 +2,14 @@
 
 #![crate_type="dylib"]
 
-#![feature(quote, plugin_registrar, macro_rules, phase)]
+#![feature(quote, plugin_registrar, plugin)]
+#![allow(unstable)]
 
 extern crate syntax;
 extern crate rustc;
 
 extern crate regex;
-#[phase(plugin)] extern crate regex_macros;
+#[plugin] #[no_link] extern crate regex_macros;
 
 extern crate unicode_names;
 
@@ -49,13 +50,15 @@ fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<Mac
     static NAMES: regex::Regex = regex!(r"\\N\{(.*?)(?:\}|$)");
 
     let new = NAMES.replace_all(string.as_slice(), |&: c: &regex::Captures| {
-        if !c.at(0).unwrap().ends_with("}") {
-            cx.span_err(sp, format!("unclosed escaped in `named!`: {}", c.at(0)).as_slice());
+        let full = c.at(0).unwrap();
+        if !full.ends_with("}") {
+            cx.span_err(sp, format!("unclosed escape in `named!`: {}", full).as_slice());
         } else {
-            match unicode_names::character(c.at(1).unwrap()) {
+            let name = c.at(1).unwrap();
+            match unicode_names::character(name) {
                 Some(c) => return c.to_string(),
                 None => {
-                    cx.span_err(sp, format!("`{}` does not name a character", c.at(1)).as_slice());
+                    cx.span_err(sp, format!("`{}` does not name a character", name).as_slice());
                 }
             }
         }

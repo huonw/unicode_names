@@ -3,8 +3,8 @@ use std::collections::hash_map::{self, Entry};
 
 pub struct Trie {
     children: HashMap<u8, Trie>,
-    count: uint,
-    offset: Option<uint>,
+    count: usize,
+    offset: Option<usize>,
 }
 
 impl Trie {
@@ -17,16 +17,13 @@ impl Trie {
     }
 
     pub fn get_child(&mut self, b: u8) -> &mut Trie {
-        // this shouldn't be necessary, but the .entry API is broken
-        // at the moment.
-        let b_ref = unsafe {&*(&b as *const _)};
-        match self.children.entry(b_ref) {
+        match self.children.entry(b) {
             Entry::Occupied(o) => o.into_mut(),
             Entry::Vacant(v) => v.insert(Trie::new())
         }
     }
 
-    pub fn set_offset<I: Iterator<Item = u8>>(&mut self, mut it: I, offset: uint) {
+    pub fn set_offset<I: Iterator<Item = u8>>(&mut self, mut it: I, offset: usize) {
         if self.offset.is_none() {
             self.offset = Some(offset)
         }
@@ -38,7 +35,7 @@ impl Trie {
     /// insert the value given by the sequence `it`, returning a tuple
     /// (is this a substring already in the tree, was this exact
     /// sequence previously inserted).
-    pub fn insert<I: Iterator<Item = u8>>(&mut self, mut it: I, offset: Option<uint>,
+    pub fn insert<I: Iterator<Item = u8>>(&mut self, mut it: I, offset: Option<usize>,
                                           weak: bool) -> (bool, bool) {
         let ret = match it.next() {
             None => {
@@ -69,8 +66,8 @@ pub struct Items<'a> {
 }
 
 impl<'a> Iterator for Items<'a> {
-    type Item = (uint, Vec<u8>, Option<uint>);
-    fn next(&mut self) -> Option<(uint, Vec<u8>, Option<uint>)> {
+    type Item = (usize, Vec<u8>, Option<usize>);
+    fn next(&mut self) -> Option<(usize, Vec<u8>, Option<usize>)> {
         'outer: loop {
             match self.current {
                 Some(t) => {

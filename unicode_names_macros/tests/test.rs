@@ -1,6 +1,7 @@
-#![feature(phase)]
+#![feature(plugin)]
+#![allow(unstable)]
 
-#[phase(plugin)] extern crate unicode_names_macros;
+#[plugin] #[no_link] extern crate unicode_names_macros;
 
 #[test]
 fn named_char() {

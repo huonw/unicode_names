@@ -1,13 +1,13 @@
 use std::mem;
 
-pub fn smallest_index(n: uint) -> uint {
-    for &x in [8, 16, 32, 64].iter() {
+pub fn smallest_index(n: usize) -> usize {
+    for &x in [8, 16, 32].iter() {
         if n < (1 << x) { return x / 8 }
     }
-    panic!("{} too large", n)
+    64
 }
-pub fn smallest_type<I: Iterator<Item = u32>>(x: I) -> uint {
-    smallest_index(x.max().unwrap_or(0) as uint)
+pub fn smallest_type<I: Iterator<Item = u32>>(x: I) -> usize {
+    smallest_index(x.max().unwrap_or(0) as usize)
 }
 pub fn smallest_u<I: Iterator<Item = u32>>(x: I) -> String {
     format!("u{}", 8 * smallest_type(x))
@@ -41,12 +41,12 @@ impl<'a, 'b> Iterator for Split<'a, 'b> {
 
         for (i, b) in self.s.bytes().enumerate() {
             if b == b' ' || self.splitters.contains(&b) {
-                let ret = self.s.slice_to(i);
+                let ret = &self.s[..i];
                 // dont include the space, but include everything else on the next step
                 if b != b' ' {
-                    self.pending = self.s.slice(i, i + 1)
+                    self.pending = &self.s[i..i+1]
                 }
-                self.s = self.s.slice_from(i + 1);
+                self.s = &self.s[i+1..];
                 return Some(ret)
             }
         }
