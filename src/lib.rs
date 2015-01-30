@@ -59,8 +59,9 @@
 //! git = "https://github.com/huonw/unicode_names"
 //! ```
 
+#![feature(core)]
+#![cfg_attr(test, feature(collections, std_misc, test, rand))]
 #![deny(missing_docs, unsafe_blocks)]
-#![allow(unstable)]
 
 #[macro_use] extern crate core;
 

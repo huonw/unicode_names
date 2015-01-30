@@ -6,10 +6,6 @@ pub struct Context {
     pub out: Box<Writer+'static>
 }
 
-pub fn char_tup(t: &(u32, u32)) -> String {
-    format!("({:?}, {:?})", t.0, t.1)
-}
-
 impl Context {
     pub fn write_array<T, F>(&mut self, name: &str, ty: &str, elements: &[T], format: F)
             where F: Fn(&T) -> String{
@@ -43,7 +39,7 @@ impl Context {
 
         for chunk in data.as_bytes().chunks(LINE_LIMIT - 6) {
             w!(self, "\\\n    ");
-            self.out.write(chunk).unwrap();
+            self.out.write_all(chunk).unwrap();
         }
         w!(self, "\";\n");
     }
