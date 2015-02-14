@@ -58,10 +58,10 @@
 //! git = "https://github.com/huonw/unicode_names"
 //! ```
 
-#![cfg_attr(feature = "no_std", feature(no_std))]
+#![cfg_attr(feature = "no_std", feature(no_std, core))]
 #![cfg_attr(feature = "no_std", no_std)]
 
-#![cfg_attr(test, feature(collections, std_misc, test, rand))]
+#![cfg_attr(test, feature(std_misc, test))]
 #![deny(missing_docs, unsafe_blocks)]
 
 #[cfg(feature = "no_std")]
@@ -73,6 +73,7 @@ extern crate core;
 extern crate std;
 
 #[cfg(test)] extern crate test;
+#[cfg(test)] extern crate rand;
 
 #[cfg(feature = "no_std")]
 use core::prelude::*;
@@ -446,7 +447,7 @@ mod tests {
     use std::ascii::AsciiExt;
     use std::char;
     use std::iter::{range_inclusive};
-    use std::rand::{self, XorShiftRng, SeedableRng};
+    use rand::{self, XorShiftRng, SeedableRng};
 
     use test::{self, Bencher};
     use super::{generated, name, character, is_cjk_unified_ideograph, jamo, Name};
@@ -459,7 +460,7 @@ mod tests {
         // check that gaps have no names (these are unassigned/control
         // codes).
         fn negative_range(from: u32, to: u32) {
-            for c in range(from, to).filter_map(char::from_u32) {
+            for c in (from..to).filter_map(char::from_u32) {
                 if !is_cjk_unified_ideograph(c) && !jamo::is_hangul_syllable(c) {
                     let n = name(c);
                     assert!(n.is_none(),
@@ -496,7 +497,7 @@ mod tests {
 
 
             assert_eq!(character(n), Some(c));
-            assert_eq!(character(n.to_ascii_lowercase().as_slice()), Some(c));
+            assert_eq!(character(&n.to_ascii_lowercase()), Some(c));
 
             negative_range(last, c as u32);
             last = c as u32 + 1;
@@ -552,8 +553,8 @@ mod tests {
 
                 let real_name = format!("CJK UNIFIED IDEOGRAPH-{:X}", x);
                 let lower_real_name = format!("CJK UNIFIED IDEOGRAPH-{:x}", x);
-                assert_eq!(character(real_name.as_slice()), Some(c));
-                assert_eq!(character(lower_real_name.as_slice()), Some(c));
+                assert_eq!(character(&real_name), Some(c));
+                assert_eq!(character(&lower_real_name), Some(c));
 
                 assert_eq!(name(c).map(|s| s.to_string()),
                            Some(real_name));
@@ -614,7 +615,7 @@ mod tests {
         let mut rng: XorShiftRng = SeedableRng::from_seed([0xFF00FF00, 0xF0F0F0F0,
                                                            0x00FF00FF, 0x0F0F0F0F]);
         let chars = rand::sample(&mut rng,
-                                 range(0u32, 0x10FFFFF)
+                                 (0u32..0x10FFFF)
                                  .filter_map(|x| {
                                      match char::from_u32(x) {
                                          Some(c) if name(c).is_none() => Some(c),
@@ -632,7 +633,7 @@ mod tests {
 
     #[bench]
     fn name_all_valid(b: &mut Bencher) {
-        let chars = range(0u32, 0x10FFFFF)
+        let chars = (0u32..0x10FFFF)
             .filter_map(|x| {
                 match char::from_u32(x) {
                     Some(c) if name(c).is_some() => Some(c),
@@ -656,7 +657,7 @@ mod tests {
                                                            0x00FF00FF, 0x0F0F0F0F]);
 
         let names = rand::sample(&mut rng,
-                                 range(0u32, 0x10FFFFF).filter_map(|x| char::from_u32(x).and_then(name)),
+                                 (0u32..0x10FFFFF).filter_map(|x| char::from_u32(x).and_then(name)),
                                  10000)
             .iter()
             .map(|n: &Name| n.to_string())
@@ -664,7 +665,7 @@ mod tests {
 
         b.iter(|| {
             for n in names.iter() {
-                test::black_box(character(n.as_slice()));
+                test::black_box(character(&n));
             }
         })
     }

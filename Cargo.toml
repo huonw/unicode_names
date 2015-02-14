@@ -32,3 +32,6 @@ no_std = []
 [dev-dependencies.unicode_names_macros]
 path = "unicode_names_macros"
 version = "*"
+
+[dev-dependencies]
+rand = "*"
