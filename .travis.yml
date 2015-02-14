@@ -15,4 +15,4 @@ script:
       ( cd generator && cargo build --verbose && cargo test --verbose; )
     fi
 after_success:
-  - [ -z "$FEATURES" ] && test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh
+  - test -z "$FEATURES" && test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh
