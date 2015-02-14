@@ -2,10 +2,11 @@
 //!
 //! This crate provides two functions for mapping from a `char` to the
 //! name given by the Unicode standard (7.0). There are no runtime
-//! requirements so this is usable with only `core`. The tables are
-//! heavily compressed, but still large (500KB), and still offer
-//! efficient `O(1)` look-ups in both directions (more precisely,
-//! `O(length of name)`).
+//! requirements so this is usable with only `core` (this requires
+//! specifying the `no_std` cargo feature). The tables are heavily
+//! compressed, but still large (500KB), and still offer efficient
+//! `O(1)` look-ups in both directions (more precisely, `O(length of
+//! name)`).
 //!
 //! ```rust
 //! extern crate unicode_names;

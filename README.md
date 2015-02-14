@@ -18,4 +18,4 @@ fn main() {
 The maps are compressed using similar tricks to Python's `unicodedata`
 module, although those here are about 70KB (12%) smaller.
 
-[**Documentation**](http://www.rust-ci.org/huonw/unicode_names/doc/unicode_names/)
+[**Documentation**](http://huonw.github.io/unicode_names/unicode_names)
