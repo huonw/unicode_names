@@ -3,9 +3,16 @@ sudo: false
 env:
   global:
     - secure: YFTnaQxv/pDDkFFCJCl3M7F4OICjF3bVC5zfSya8WuH40eL42++7UijbrzgmWgNq2NGDtiLulSE4ZrCT4JK6PgZ/ArCYNN6sNPs0n3KhcZ9PuXNQ3kaj3QSrtil9hN8l26fDCcL2if7Y78yT+7MZ75NPXvc2PSlQ6Rfpl7xziD8=
+  matrix:
+    - FEATURES=''
+    - FEATURES='no_std'
+
 script:
-  - cargo build --verbose && cargo test --verbose && cargo doc --verbose
-  - "( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )"
-  - "( cd generator && cargo build --verbose && cargo test --verbose; )"
+  - cargo build --verbose --features "$FEATURES" && cargo test --verbose --features "$FEATURES"
+  - if [ -z "$FEATURES" ]; then
+      cargo doc --verbose
+      ( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )
+      ( cd generator && cargo build --verbose && cargo test --verbose; )
+    fi
 after_success:
-  - test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh
+  - [ -z "$FEATURES" ] && test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh
