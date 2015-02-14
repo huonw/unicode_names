@@ -1,4 +1,3 @@
-#![no_std]
 //! Convert between characters and their standard names.
 //!
 //! This crate provides two functions for mapping from a `char` to the
@@ -35,8 +34,8 @@
 //!
 //! ```rust
 //! #![feature(plugin)]
-//!
-//! #[plugin] #[no_link] extern crate unicode_names_macros;
+//! #![plugin(unicode_names_macros)]
+//! # extern crate unicode_names; // pointless, just avoid extern crate being inserted
 //!
 //! fn main() {
 //!     let x: char = named_char!("snowman");
@@ -59,16 +58,25 @@
 //! git = "https://github.com/huonw/unicode_names"
 //! ```
 
-#![feature(core)]
+#![cfg_attr(feature = "no_std", feature(no_std))]
+#![cfg_attr(feature = "no_std", no_std)]
+
 #![cfg_attr(test, feature(collections, std_misc, test, rand))]
 #![deny(missing_docs, unsafe_blocks)]
 
-#[macro_use] extern crate core;
+#[cfg(feature = "no_std")]
+#[macro_use]
+extern crate core;
 
-#[cfg(test)] #[macro_use] extern crate std;
+#[cfg(all(test, feature = "no_std"))]
+#[macro_use]
+extern crate std;
+
 #[cfg(test)] extern crate test;
 
+#[cfg(feature = "no_std")]
 use core::prelude::*;
+
 use core::char;
 use core::fmt;
 
@@ -191,7 +199,7 @@ impl fmt::Debug for Name {
 }
 impl fmt::Display for Name {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        let mut printed = self.clone();
+        let printed = self.clone();
         for s in printed {
             try!(write!(fmtr, "{}", s))
         }
@@ -269,7 +277,7 @@ pub fn name(c: char) -> Option<Name> {
     }
 }
 
-fn fnv_hash<I: Iterator<Item=u8>>(mut x: I) -> u64 {
+fn fnv_hash<I: Iterator<Item=u8>>(x: I) -> u64 {
     let mut g = 0xcbf29ce484222325 ^ phf::NAME2CODE_N;
     for b in x { g ^= b as u64; g *= 0x100000001b3; }
     g
@@ -372,7 +380,7 @@ pub fn character(name: &str) -> Option<char> {
     // point (and invalid names map to anything), so we only need to
     // check the name for this codepoint matches the input and we know
     // everything. (i.e. no need for probing)
-    let mut maybe_name = match ::name(codepoint) {
+    let maybe_name = match ::name(codepoint) {
         None => {
             if true { debug_assert!(false) }
             return None
@@ -466,7 +474,7 @@ mod tests {
             let mut it = line.split(';');
 
             let raw_c = it.next();
-            let c = match char::from_u32(raw_c.and_then(StrExt::parse).unwrap()) {
+            let c = match char::from_u32(raw_c.and_then(|s| StrExt::parse(s).ok()).unwrap()) {
                 Some(c) => c,
                 None => continue
             };
@@ -662,7 +670,12 @@ mod tests {
     }
 }
 
-#[cfg(not(test))]
+#[cfg(all(feature = "no_std", not(test)))]
 mod std {
     pub use core::{clone, fmt, marker};
+}
+
+#[cfg(not(feature = "no_std"))]
+mod core {
+    pub use std::*;
 }

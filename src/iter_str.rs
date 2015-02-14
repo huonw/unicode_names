@@ -1,5 +1,7 @@
+#[cfg(feature = "no_std")]
 use core::prelude::*;
 use core::{slice, fmt};
+
 
 use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_SHORT_LENGTHS, LEXICON_ORDERED_LENGTHS,
                 LEXICON_OFFSETS, LEXICON};
@@ -24,7 +26,7 @@ static HYPHEN: u8 = 127;
 impl Iterator for IterStr {
     type Item = &'static str;
     fn next(&mut self) -> Option<&'static str> {
-        let mut tmp = self.phrasebook;
+        let mut tmp = self.phrasebook.clone();
         tmp.next().map(|&raw_b| {
             // the first byte includes if it is the last in this name
             // in the high bit.
@@ -76,7 +78,7 @@ impl Iterator for IterStr {
 
 impl fmt::Debug for IterStr {
     fn fmt(&self, fmtr: &mut fmt::Formatter) -> fmt::Result {
-        let mut printed = self.clone();
+        let printed = self.clone();
         for s in printed {
             try!(write!(fmtr, "{}", s))
         }

@@ -1,5 +1,6 @@
 //! Algorithmic mapping for hangul syllables.
 
+#[cfg(feature = "no_std")]
 use core::prelude::*;
 
 // derived from Jamo.txt

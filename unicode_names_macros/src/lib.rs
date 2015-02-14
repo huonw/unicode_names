@@ -2,13 +2,14 @@
 
 #![crate_type="dylib"]
 
-#![feature(quote, plugin_registrar, plugin, rustc_private, core, collections)]
+#![feature(quote, plugin_registrar, plugin, rustc_private, core)]
+
+#![plugin(regex_macros)]
 
 extern crate syntax;
 extern crate rustc;
 
 extern crate regex;
-#[plugin] #[no_link] extern crate regex_macros;
 
 extern crate unicode_names;
 
