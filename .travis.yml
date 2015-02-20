@@ -10,9 +10,9 @@ env:
 script:
   - cargo build --verbose --features "$FEATURES" && cargo test --verbose --features "$FEATURES"
   - if [ -z "$FEATURES" ]; then
-      cargo doc --verbose
-      ( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; )
-      ( cd generator && cargo build --verbose && cargo test --verbose; )
+      cargo doc --verbose;
+      ( cd unicode_names_macros && cargo build --verbose && cargo test --verbose; );
+      ( cd generator && cargo build --verbose && cargo test --verbose; );
     fi
 after_success:
   - test -z "$FEATURES" && test "$TRAVIS_PULL_REQUEST" == false && test "$TRAVIS_BRANCH" == "master" && bash deploy-docs.sh
