@@ -5,7 +5,7 @@
 
 extern crate time;
 
-use std::rand::{XorShiftRng, Rng, self};
+use rand::{XorShiftRng, Rng, self};
 
 use std::iter::repeat;
 

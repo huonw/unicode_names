@@ -1,6 +1,7 @@
-#![feature(io, collections, rand, std_misc, path, core, os)]
+#![feature(old_io, old_path, collections, env, std_misc, core)]
 #[macro_use] extern crate log;
 extern crate getopts;
+extern crate rand;
 
 use std::{cmp, char};
 use std::collections::{HashMap, hash_map};
@@ -31,7 +32,7 @@ fn get_table_data() -> (Vec<(char, String)>, Vec<(char, char)>) {
         ($line: expr) => {{
             let line = $line;
             let mut splits = line.split(';');
-            let cp = splits.next().and_then(StrExt::parse)
+            let cp = splits.next().and_then(|s| s.parse().ok())
                 .unwrap_or_else(|| panic!("invalid {}", line));
             let c = match char::from_u32(cp) {
                 None => continue,
@@ -318,7 +319,7 @@ fn main() {
     opts.optflag("s", "silent", "don't write anything to files");
     opts.optopt("", "truncate", "only handle the first N", "N");
     opts.optflag("h", "help", "print this message");
-    let matches = match opts.parse(&std::os::args()[1..]) {
+    let matches = match opts.parse(std::env::args().skip(1)) {
         Ok(m) => m, Err(f) => panic!(f.to_string()),
     };
 
@@ -348,7 +349,8 @@ fn main() {
     let tries = matches.opt_str("phf-tries");
 
     let (mut codepoint_names, cjk) = get_table_data();
-    match matches.opt_str("truncate").map(|s| s.parse().expect("truncate should be an integer")) {
+    match matches.opt_str("truncate").map(
+            |s| s.parse().ok().expect("truncate should be an integer")) {
         Some(n) => codepoint_names.truncate(n),
         None => {}
     }
@@ -356,8 +358,8 @@ fn main() {
     if do_phf {
         let (n, disps, data) =
             phf::create_phf(&*codepoint_names,
-                            lambda.map(|s| s.parse().expect("invalid -l")).unwrap_or(3),
-                            tries.map(|s| s.parse().expect("invalid -t")).unwrap_or(2));
+                            lambda.map(|s| s.parse().ok().expect("invalid -l")).unwrap_or(3),
+                            tries.map(|s| s.parse().ok().expect("invalid -t")).unwrap_or(2));
 
 
         w!(ctxt, "pub static NAME2CODE_N: u64 = {};\n", n);
