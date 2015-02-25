@@ -156,7 +156,7 @@ fn bin_data(dat: &[u32]) -> (Vec<u32>, Vec<u32>, usize) {
     let mut cache = HashMap::new();
 
     // brute force search for the shift that words best.
-    for shift in 0us..14 {
+    for shift in 0..14 {
         cache.clear();
 
         let mut t1 = vec![];
