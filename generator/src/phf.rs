@@ -14,12 +14,12 @@ static NOVAL: char = '\0';
 /// FNV
 fn hash(s: &str, h: u64) -> u64 {
     let mut g = 0xcbf29ce484222325 ^ h;
-    for b in s.bytes() { g ^= b as u64; g *= 0x100000001b3; }
+    for b in s.bytes() { g ^= b as u64; g = g.wrapping_mul(0x100000001b3); }
     g
 }
 
 pub fn displace(f1: u32, f2: u32, d1: u32, d2: u32) -> u32 {
-    d2 + f1 * d1 + f2
+    d2.wrapping_add(f1.wrapping_mul(d1)).wrapping_add(f2)
 }
 fn split(hash: u64) -> Hash {
     let bits = 21;

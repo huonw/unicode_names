@@ -49,21 +49,20 @@
 //!
 //! # Cargo-enabled
 //!
-//! Add either (or both!) of the following to your `Cargo.toml`.
+//! This package is on crates.io, so add either (or both!) of the
+//! following to your `Cargo.toml`.
 //!
 //! ```toml
-//! [dependencies.unicode_names]
-//! git = "https://github.com/huonw/unicode_names"
-//!
-//! [dependencies.unicode_names_macros]
-//! git = "https://github.com/huonw/unicode_names"
+//! [dependencies]
+//! unicode_names = "0.1"
+//! unicode_names_macros = "0.1"
 //! ```
 
 #![cfg_attr(feature = "no_std", feature(no_std, core))]
 #![cfg_attr(feature = "no_std", no_std)]
 
 #![cfg_attr(test, feature(std_misc, test))]
-#![deny(missing_docs, unsafe_blocks)]
+#![deny(missing_docs, unsafe_code)]
 
 #[cfg(feature = "no_std")]
 #[macro_use]
@@ -281,11 +280,11 @@ pub fn name(c: char) -> Option<Name> {
 
 fn fnv_hash<I: Iterator<Item=u8>>(x: I) -> u64 {
     let mut g = 0xcbf29ce484222325 ^ phf::NAME2CODE_N;
-    for b in x { g ^= b as u64; g *= 0x100000001b3; }
+    for b in x { g ^= b as u64; g = g.wrapping_mul(0x100000001b3); }
     g
 }
 fn displace(f1: u32, f2: u32, d1: u32, d2: u32) -> u32 {
-    d2 + f1 * d1 + f2
+    d2.wrapping_add(f1.wrapping_mul(d1)).wrapping_add(f2)
 }
 fn split(hash: u64) -> (u32, u32, u32) {
     let bits = 21;

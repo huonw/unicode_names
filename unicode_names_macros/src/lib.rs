@@ -16,7 +16,7 @@ extern crate unicode_names;
 use syntax::ast;
 use syntax::codemap;
 use syntax::parse::token;
-use syntax::ext::base::{self, ExtCtxt, MacResult, MacExpr, DummyResult};
+use syntax::ext::base::{self, ExtCtxt, MacResult, MacEager, DummyResult};
 use syntax::ext::build::AstBuilder;
 use rustc::plugin::Registry;
 
@@ -34,7 +34,7 @@ fn named_char(cx: &mut ExtCtxt, sp: codemap::Span,
             None => cx.span_err(sp, format!("`{}` does not name a character", name).as_slice()),
 
             // everything worked!
-            Some(c) => return MacExpr::new(cx.expr_lit(sp, ast::LitChar(c))),
+            Some(c) => return MacEager::expr(cx.expr_lit(sp, ast::LitChar(c))),
         }
     }
     // failed :(
@@ -49,7 +49,7 @@ fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<Mac
      // make sure unclosed braces don't escape.
     static NAMES: regex::Regex = regex!(r"\\N\{(.*?)(?:\}|$)");
 
-    let new = NAMES.replace_all(string.as_slice(), |&: c: &regex::Captures| {
+    let new = NAMES.replace_all(string.as_slice(), |c: &regex::Captures| {
         let full = c.at(0).unwrap();
         if !full.ends_with("}") {
             cx.span_err(sp, format!("unclosed escape in `named!`: {}", full).as_slice());
@@ -66,5 +66,5 @@ fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<Mac
         String::new()
     });
 
-    MacExpr::new(cx.expr_str(sp, token::intern_and_get_ident(new.as_slice())))
+    MacEager::expr(cx.expr_str(sp, token::intern_and_get_ident(new.as_slice())))
 }
