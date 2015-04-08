@@ -61,7 +61,7 @@
 #![cfg_attr(feature = "no_std", feature(no_std, core))]
 #![cfg_attr(feature = "no_std", no_std)]
 
-#![cfg_attr(test, feature(std_misc, test))]
+#![cfg_attr(test, feature(test, core))]
 #![deny(missing_docs, unsafe_code)]
 
 #[cfg(feature = "no_std")]
@@ -475,7 +475,7 @@ mod tests {
             let mut it = line.split(';');
 
             let raw_c = it.next();
-            let c = match char::from_u32(raw_c.and_then(|s| StrExt::parse(s).ok()).unwrap()) {
+            let c = match char::from_u32(raw_c.and_then(|s| s.parse().ok()).unwrap()) {
                 Some(c) => c,
                 None => continue
             };

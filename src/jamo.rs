@@ -36,9 +36,10 @@ pub fn syllable_decomposition(c: char) -> Option<(u8, u8, u8)> {
 }
 
 fn slice_shift_byte<'a>(a: &'a [u8]) -> (Option<u8>, &'a [u8]) {
-    match a {
-        [c, rest..] => (Some(c), rest),
-        _ => (None, a),
+    if a.len() >= 1 {
+        (Some(a[0]), &a[1..])
+    } else {
+        (None, a)
     }
 }
 
@@ -174,7 +175,7 @@ mod tests {
     fn correct_slice_shift_choseong() {
         for (i, &choseong) in super::CHOSEONG.iter().enumerate() {
             assert_eq!(super::slice_shift_choseong(choseong.as_bytes()),
-                       (Some(i as u32), b""));
+                       (Some(i as u32), b"" as &[u8]));
         }
     }
 
@@ -182,18 +183,18 @@ mod tests {
     fn correct_slice_shift_jungseong() {
         for (i, &jungseong) in super::JUNGSEONG.iter().enumerate() {
             assert_eq!(super::slice_shift_jungseong(jungseong.as_bytes()),
-                       (Some(i as u32), b""));
+                       (Some(i as u32), b"" as &[u8]));
         }
 
         // there is no empty jungseong
-        assert_eq!(super::slice_shift_jungseong(b""), (None, b""));
+        assert_eq!(super::slice_shift_jungseong(b""), (None, b"" as &[u8]));
     }
 
     #[test]
     fn correct_slice_shift_jongseong() {
         for (i, &jongseong) in super::JONGSEONG.iter().enumerate() {
             assert_eq!(super::slice_shift_jongseong(jongseong.as_bytes()),
-                       (Some(i as u32), b""));
+                       (Some(i as u32), b"" as &[u8]));
         }
     }
 }
