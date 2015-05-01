@@ -5,24 +5,19 @@ sudo: required
 env:
   global:
     - secure: YFTnaQxv/pDDkFFCJCl3M7F4OICjF3bVC5zfSya8WuH40eL42++7UijbrzgmWgNq2NGDtiLulSE4ZrCT4JK6PgZ/ArCYNN6sNPs0n3KhcZ9PuXNQ3kaj3QSrtil9hN8l26fDCcL2if7Y78yT+7MZ75NPXvc2PSlQ6Rfpl7xziD8=
-  matrix:
-    - FEATURES=''
-    - FEATURES='no_std'
 
 before_script:
   - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
 
 script:
   - |
-      travis-cargo build -- -- --features "$FEATURES" &&
-      travis-cargo test -- -- --features "$FEATURES"
-  - if [ -z "$FEATURES" ]; then
-      travis-cargo bench
-      travis-cargo doc
-      ( cd unicode_names_macros && travis-cargo build && travis-cargo test; );
-      ( cd generator && travis-cargo build && travis-cargo test; );
-    fi
+      travis-cargo build &&
+      travis-cargo test &&
+      travis-cargo bench &&
+      travis-cargo doc &&
+      ( cd unicode_names_macros && travis-cargo build && travis-cargo test; ) &&
+      ( cd generator && travis-cargo build && travis-cargo test; )
 after_success:
-  - test -z "$FEATURES" && travis-cargo doc-upload && travis-cargo coveralls
+  - travis-cargo doc-upload && travis-cargo coveralls
 notifications:
     webhooks: http://huon.me:54856/travis
