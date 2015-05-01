@@ -8,7 +8,7 @@ use generated::{PHRASEBOOK_SHORT, PHRASEBOOK, LEXICON_SHORT_LENGTHS, LEXICON_ORD
 
 #[derive(Clone)]
 pub struct IterStr {
-    phrasebook: slice::Iter<'static u8>,
+    phrasebook: slice::Iter<'static, u8>,
     last_was_word: bool
 }
 
