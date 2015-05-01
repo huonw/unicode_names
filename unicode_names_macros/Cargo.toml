@@ -11,6 +11,9 @@ license = "MIT/Apache-2.0"
 keywords = ["text", "unicode", "plugin"]
 description = "Support macros for `unicode_names`."
 
+[features]
+unstable = []
+
 [dependencies]
 regex = "0.1.8"
 regex_macros = "0.1.2"

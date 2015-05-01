@@ -31,7 +31,7 @@ fn split(hash: u64) -> Hash {
     }
 }
 
-#[derive(Copy)]
+#[derive(Copy, Clone)]
 struct Hash { g: u32, f1: u32, f2: u32 }
 
 fn try_phf_table(values: &[(char, String)],

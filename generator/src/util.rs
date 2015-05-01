@@ -67,6 +67,6 @@ fn test_split() {
           ("a -b", &["a", "", "-", "b"])];
 
     for &(s, v) in tests.iter() {
-        assert_eq!(split(s, b"-").collect::<Vec<&str>>().as_slice(), v)
+        assert_eq!(split(s, b"-").collect::<Vec<&str>>(), v)
     }
 }

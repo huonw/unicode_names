@@ -1,9 +1,10 @@
 use std::fmt::Debug;
+use std::io::prelude::*;
 
 static LINE_LIMIT: usize = 95;
 
 pub struct Context {
-    pub out: Box<Writer+'static>
+    pub out: Box<Write+'static>
 }
 
 impl Context {
@@ -33,7 +34,7 @@ impl Context {
     }
 
     pub fn write_plain_string(&mut self, name: &str, data: &str) {
-        assert!(!data.contains_char('\\'));
+        assert!(!data.contains('\\'));
 
         w!(self, "#[inline(never)] pub static {}: &'static str = \"", name);
 

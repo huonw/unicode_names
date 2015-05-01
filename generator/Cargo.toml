@@ -4,6 +4,9 @@ name = "unicode_names_generator"
 version = "0.0.1"
 authors = ["Huon Wilson <dbau.pp@gmail.com>"]
 
+[features]
+unstable = []
+
 [dependencies]
 time = "0.1.10"
 log = "0"
