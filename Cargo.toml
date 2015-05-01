@@ -27,6 +27,7 @@ exclude = [
 [features]
 default = []
 
+unstable = []
 no_std = []
 
 [dev-dependencies.unicode_names_macros]

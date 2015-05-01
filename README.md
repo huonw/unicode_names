@@ -1,6 +1,6 @@
 # unicode_names
 
-[![Build Status](https://travis-ci.org/huonw/unicode_names.png)](https://travis-ci.org/huonw/unicode_names)
+[![Build Status](https://travis-ci.org/huonw/unicode_names.png)](https://travis-ci.org/huonw/unicode_names) [![Coverage Status](https://coveralls.io/repos/huonw/unicode_names/badge.svg)](https://coveralls.io/r/huonw/unicode_names)
 
 Time and memory efficiently mapping characters to and from their
 Unicode 7.0 names, at runtime and compile-time.
