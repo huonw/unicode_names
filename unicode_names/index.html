@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="rustdoc">
+    <meta name="description" content="API documentation for the Rust `unicode_names` crate.">
+    <meta name="keywords" content="rust, rustlang, rust-lang, unicode_names">
+
+    <title>unicode_names - Rust</title>
+
+    <link rel="stylesheet" type="text/css" href="../main.css">
+
+    
+    
+</head>
+<body class="rustdoc">
+    <!--[if lte IE 8]>
+    <div class="warning">
+        This old browser is unsupported and will most likely display funky
+        things.
+    </div>
+    <![endif]-->
+
+    
+
+    <section class="sidebar">
+        
+        <p class='location'></p><script>window.sidebarCurrent = {name: 'unicode_names', ty: 'mod', relpath: '../'};</script>
+    </section>
+
+    <nav class="sub">
+        <form class="search-form js-only">
+            <div class="search-container">
+                <input class="search-input" name="search"
+                       autocomplete="off"
+                       placeholder="Click or press 'S' to search, '?' for more options..."
+                       type="search">
+            </div>
+        </form>
+    </nav>
+
+    <section id='main' class="content mod">
+<h1 class='fqn'><span class='in-band'>Crate <a class='mod' href=''>unicode_names</a></span><span class='out-of-band'><span id='render-detail'>
+            <a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">
+                [<span class='inner'>&#x2212;</span>]
+            </a>
+        </span><a id='src-0' class='srclink' href='../src/unicode_names/lib.rs.html#1-682' title='goto source code'>[src]</a></span></h1>
+<div class='docblock'><p>Convert between characters and their standard names.</p>
+
+<p>This crate provides two functions for mapping from a <code>char</code> to the
+name given by the Unicode standard (7.0). There are no runtime
+requirements so this is usable with only <code>core</code> (this requires
+specifying the <code>no_std</code> cargo feature). The tables are heavily
+compressed, but still large (500KB), and still offer efficient
+<code>O(1)</code> look-ups in both directions (more precisely, <code>O(length of name)</code>).</p>
+<pre id='rust-example-rendered' class='rust '>
+<span class='kw'>extern</span> <span class='kw'>crate</span> <span class='ident'>unicode_names</span>;
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;☃ is called {:?}&quot;</span>, <span class='ident'>unicode_names</span>::<span class='ident'>name</span>(<span class='string'>&#39;☃&#39;</span>)); <span class='comment'>// SNOWMAN</span>
+    <span class='macro'>println</span><span class='macro'>!</span>(<span class='string'>&quot;{:?} is happy&quot;</span>, <span class='ident'>unicode_names</span>::<span class='ident'>character</span>(<span class='string'>&quot;white smiling face&quot;</span>)); <span class='comment'>// ☺</span>
+    <span class='comment'>// (NB. case insensitivity)</span>
+}
+</pre>
+
+<p><a href="https://github.com/huonw/unicode_names"><strong>Source</strong></a>.</p>
+
+<h1 id="macros" class='section-header'><a
+                           href="#macros">Macros</a></h1>
+<p>The associated <code>unicode_names_macros</code> crate provides two macros
+for converting at compile-time, giving named literals similar to
+Python&#39;s <code>&quot;\N{...}&quot;</code>.</p>
+
+<ul>
+<li><code>named_char!(name)</code> takes a single string <code>name</code> and creates a
+<code>char</code> literal.</li>
+<li><code>named!(string)</code> takes a string and replaces any <code>\\N{name}</code>
+sequences with the character with that name. NB. String escape
+sequences cannot be customised, so the extra backslash (or a raw
+string) is required.</li>
+</ul>
+<pre id='rust-example-rendered' class='rust '>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>feature</span>(<span class='ident'>plugin</span>)]</span>
+<span class='attribute'>#<span class='op'>!</span>[<span class='ident'>plugin</span>(<span class='ident'>unicode_names_macros</span>)]</span>
+
+<span class='kw'>fn</span> <span class='ident'>main</span>() {
+    <span class='kw'>let</span> <span class='ident'>x</span>: <span class='ident'>char</span> <span class='op'>=</span> <span class='macro'>named_char</span><span class='macro'>!</span>(<span class='string'>&quot;snowman&quot;</span>);
+    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>x</span>, <span class='string'>&#39;☃&#39;</span>);
+
+    <span class='kw'>let</span> <span class='ident'>y</span>: <span class='kw-2'>&amp;</span><span class='ident'>str</span> <span class='op'>=</span> <span class='macro'>named</span><span class='macro'>!</span>(<span class='string'>&quot;foo bar \\N{BLACK STAR} baz qux&quot;</span>);
+    <span class='macro'>assert_eq</span><span class='macro'>!</span>(<span class='ident'>y</span>, <span class='string'>&quot;foo bar ★ baz qux&quot;</span>);
+}
+</pre>
+
+<h1 id="cargo-enabled" class='section-header'><a
+                           href="#cargo-enabled">Cargo-enabled</a></h1>
+<p>This package is on crates.io, so add either (or both!) of the
+following to your <code>Cargo.toml</code>.</p>
+
+<pre><code class="language-toml">[dependencies]
+unicode_names = &quot;0.1&quot;
+unicode_names_macros = &quot;0.1&quot;
+</code></pre>
+</div><h2 id='structs' class='section-header'><a href="#structs">Structs</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='struct' href='struct.Name.html'
+                               title='unicode_names::Name'>Name</a></td>
+                        <td class='docblock short'>
+                             <p>An iterator over the components of a code point&#39;s name, it also
+implements <code>Show</code>.</p>
+
+                        </td>
+                    </tr>
+                </table><h2 id='functions' class='section-header'><a href="#functions">Functions</a></h2>
+<table>
+                    <tr class=' module-item'>
+                        <td><a class='fn' href='fn.character.html'
+                               title='unicode_names::character'>character</a></td>
+                        <td class='docblock short'>
+                             <p>Find the character called <code>name</code>, or <code>None</code> if no such character
+exists.</p>
+
+                        </td>
+                    </tr>
+                
+                    <tr class=' module-item'>
+                        <td><a class='fn' href='fn.name.html'
+                               title='unicode_names::name'>name</a></td>
+                        <td class='docblock short'>
+                             <p>Find the name of <code>c</code>, or <code>None</code> if <code>c</code> has no name.</p>
+
+                        </td>
+                    </tr>
+                </table></section>
+    <section id='search' class="content hidden"></section>
+
+    <section class="footer"></section>
+
+    <div id="help" class="hidden">
+        <div class="shortcuts">
+            <h1>Keyboard shortcuts</h1>
+            <dl>
+                <dt>?</dt>
+                <dd>Show this help dialog</dd>
+                <dt>S</dt>
+                <dd>Focus the search field</dd>
+                <dt>&larrb;</dt>
+                <dd>Move up in search results</dd>
+                <dt>&rarrb;</dt>
+                <dd>Move down in search results</dd>
+                <dt>&#9166;</dt>
+                <dd>Go to active search result</dd>
+            </dl>
+        </div>
+        <div class="infos">
+            <h1>Search tricks</h1>
+            <p>
+                Prefix searches with a type followed by a colon (e.g.
+                <code>fn:</code>) to restrict the search to a given type.
+            </p>
+            <p>
+                Accepted types are: <code>fn</code>, <code>mod</code>,
+                <code>struct</code>, <code>enum</code>,
+                <code>trait</code>, <code>typedef</code> (or
+                <code>tdef</code>).
+            </p>
+            <p>
+                Search functions by type signature (e.g.
+                <code>vec -> usize</code>)
+            </p>
+        </div>
+    </div>
+
+    
+
+    <script>
+        window.rootPath = "../";
+        window.currentCrate = "unicode_names";
+        window.playgroundUrl = "";
+    </script>
+    <script src="../jquery.js"></script>
+    <script src="../main.js"></script>
+    
+    <script async src="../search-index.js"></script>
+</body>
+</html>

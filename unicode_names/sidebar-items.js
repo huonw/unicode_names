@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["character","Find the character called `name`, or `None` if no such character exists."],["name","Find the name of `c`, or `None` if `c` has no name."]],"struct":[["Name","An iterator over the components of a code point's name, it also implements `Show`."]]});
