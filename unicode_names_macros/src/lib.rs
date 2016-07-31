@@ -8,17 +8,19 @@
 
 extern crate syntax;
 extern crate rustc;
+extern crate rustc_plugin;
 
 extern crate regex;
 
 extern crate unicode_names;
 
 use syntax::ast;
+use syntax::tokenstream::TokenTree;
 use syntax::codemap;
 use syntax::parse::token;
 use syntax::ext::base::{self, ExtCtxt, MacResult, MacEager, DummyResult};
 use syntax::ext::build::AstBuilder;
-use rustc::plugin::Registry;
+use rustc_plugin::Registry;
 
 #[plugin_registrar]
 #[doc(hidden)]
@@ -27,20 +29,20 @@ pub fn plugin_registrar(registrar: &mut Registry) {
     registrar.register_macro("named", named);
 }
 fn named_char(cx: &mut ExtCtxt, sp: codemap::Span,
-              tts: &[ast::TokenTree]) -> Box<MacResult+'static> {
+              tts: &[TokenTree]) -> Box<MacResult+'static> {
     match base::get_single_str_from_tts(cx, sp, tts, "named_char") {
         None => {}
         Some(name) => match unicode_names::character(&name) {
             None => cx.span_err(sp, &format!("`{}` does not name a character", name)),
 
             // everything worked!
-            Some(c) => return MacEager::expr(cx.expr_lit(sp, ast::LitChar(c))),
+            Some(c) => return MacEager::expr(cx.expr_lit(sp, ast::LitKind::Char(c))),
         }
     }
     // failed :(
     DummyResult::expr(sp)
 }
-fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[ast::TokenTree]) -> Box<MacResult+'static> {
+fn named(cx: &mut ExtCtxt, sp: codemap::Span, tts: &[TokenTree]) -> Box<MacResult+'static> {
     let string = match base::get_single_str_from_tts(cx, sp, tts, "named") {
         None => return DummyResult::expr(sp),
         Some(s) => s
