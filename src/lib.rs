@@ -61,7 +61,7 @@
 #![cfg_attr(feature = "no_std", feature(no_std, core))]
 #![cfg_attr(feature = "no_std", no_std)]
 
-#![cfg_attr(test, feature(test, core, inclusive_range_syntax))]
+#![cfg_attr(test, feature(test, inclusive_range_syntax))]
 #![deny(missing_docs, unsafe_code)]
 
 #[cfg(feature = "no_std")]
