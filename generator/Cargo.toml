@@ -11,4 +11,4 @@ unstable = []
 time = "0.1.10"
 log = "0"
 getopts = "0"
-rand = "0"
+rand = "0.3.14"
