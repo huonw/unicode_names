@@ -452,7 +452,7 @@ mod tests {
     use super::{generated, name, character, is_cjk_unified_ideograph, jamo, Name};
 
     static DATA: &'static str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
-                                                     "/data/codepoint_name.csv"));
+                                                     "/data/UnicodeData.txt"));
 
     #[test]
     fn exhaustive() {
@@ -474,7 +474,7 @@ mod tests {
             let mut it = line.split(';');
 
             let raw_c = it.next();
-            let c = match char::from_u32(raw_c.and_then(|s| s.parse().ok()).unwrap()) {
+            let c = match char::from_u32(raw_c.and_then(|s| u32::from_str_radix(s, 16).ok()).unwrap()) {
                 Some(c) => c,
                 None => continue
             };
