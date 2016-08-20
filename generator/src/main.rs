@@ -25,7 +25,7 @@ mod util;
 
 static OUT_FILE: &'static str = "../src/generated.rs";
 static PHF_OUT_FILE: &'static str = "../src/generated_phf.rs";
-static IN_FILE: &'static str = "../data/codepoint_name.csv";
+static IN_FILE: &'static str = "../data/UnicodeData.txt";
 
 static SPLITTERS: &'static [u8] = b"-";
 
@@ -34,7 +34,7 @@ fn get_table_data() -> (Vec<(char, String)>, Vec<(char, char)>) {
         ($line: expr) => {{
             let line = $line;
             let mut splits = line.split(';');
-            let cp = splits.next().and_then(|s| s.parse().ok())
+            let cp = splits.next().and_then(|s| u32::from_str_radix(s, 16).ok())
                 .unwrap_or_else(|| panic!("invalid {}", line));
             let c = match char::from_u32(cp) {
                 None => continue,

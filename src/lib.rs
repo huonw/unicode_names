@@ -61,7 +61,7 @@
 #![cfg_attr(feature = "no_std", feature(no_std, core))]
 #![cfg_attr(feature = "no_std", no_std)]
 
-#![cfg_attr(test, feature(test, core))]
+#![cfg_attr(test, feature(test, inclusive_range_syntax))]
 #![deny(missing_docs, unsafe_code)]
 
 #[cfg(feature = "no_std")]
@@ -446,14 +446,13 @@ mod tests {
     use std::prelude::v1::*;
     use std::ascii::AsciiExt;
     use std::char;
-    use std::iter::{range_inclusive};
     use rand::{self, XorShiftRng, SeedableRng};
 
     use test::{self, Bencher};
     use super::{generated, name, character, is_cjk_unified_ideograph, jamo, Name};
 
     static DATA: &'static str = include_str!(concat!(env!("CARGO_MANIFEST_DIR"),
-                                                     "/data/codepoint_name.csv"));
+                                                     "/data/UnicodeData.txt"));
 
     #[test]
     fn exhaustive() {
@@ -475,7 +474,7 @@ mod tests {
             let mut it = line.split(';');
 
             let raw_c = it.next();
-            let c = match char::from_u32(raw_c.and_then(|s| s.parse().ok()).unwrap()) {
+            let c = match char::from_u32(raw_c.and_then(|s| u32::from_str_radix(s, 16).ok()).unwrap()) {
                 Some(c) => c,
                 None => continue
             };
@@ -548,7 +547,7 @@ mod tests {
     #[test]
     fn cjk_unified_ideograph_exhaustive() {
         for &(lo, hi) in generated::CJK_IDEOGRAPH_RANGES.iter() {
-            for x in range_inclusive(lo as u32, hi as u32) {
+            for x in lo as u32 ... hi as u32 {
                 let c = char::from_u32(x).unwrap();
 
                 let real_name = format!("CJK UNIFIED IDEOGRAPH-{:X}", x);
